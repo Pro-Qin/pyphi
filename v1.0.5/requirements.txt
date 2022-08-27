@@ -1,0 +1,6 @@
+pygame
+Pillow
+tinytag
+math
+random
+platform
