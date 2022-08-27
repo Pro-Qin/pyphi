@@ -1,0 +1,5 @@
+pygame~=2.1.2
+eyed3~=0.9.6
+tinytag~=1.8.1
+Pillow~=8.4.0
+matplotlib~=3.5.0
