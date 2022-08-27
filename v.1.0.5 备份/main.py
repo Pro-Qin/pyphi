@@ -15,7 +15,6 @@ from tkinter.messagebox import showinfo, showwarning, showerror, askyesno
 # 消息框
 import random  # 随机
 # test
-from pydub import AudioSegment
 # 音频格式转化
 import pygame.freetype  # 文本
 import eyed3  # 音频文件处理
