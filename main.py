@@ -14,6 +14,7 @@ import readfile                     # 读取文件
 import welcome as w                 # 欢迎界面
 import easing                       # 缓动函数
 import helper                       # def函数封装
+import readchart                    # 读取谱面
 
 
 os.system('clear')  # 清屏
@@ -37,9 +38,9 @@ nummark = "0000000"
 
 # -------------------------------------------
 w.welcome()  # 欢迎界面
-Gamename = w.choose()  # 选择界面
+gamename = w.choose()  # 选择界面
 w.loading()
-info_data = readfile.lookfile(Gamename)
+info_data = readfile.lookfile(gamename)
 # --------------------------------------------
 
 
@@ -163,20 +164,7 @@ continueButton.set_alpha(100)
 restartButton.set_alpha(100)
 stopButton.set_alpha(100)
 # -----------------------------------------------
-# 谱面识别！
-datanum = 0
-notedata = []
-'''
-格式：  
-(1=Tap 2=Drag 3=Flick 4=Hold) int      int整数        float浮点数    float浮点数           bool布尔值         float浮点数
-note类型                       note编号  note绑定的线儿  note出现时间   note在线的x相对位置    note是否正常掉落     note速度     
-'''
-for i in range(len(data[0])):  # 循环
-    notedata.append(data[0][datanum][:-1])  # 把"\n"截掉
-    datanum += 1
-
-game_bpm = notedata[1][:][9:]  # bpm
-print(notedata, '\n', game_bpm)
+readchart.init(gamename)
 # -----------------------------------------------
 
 # 如果没有下列主循环代码，运行结果会一闪而过

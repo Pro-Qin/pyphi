@@ -8,6 +8,7 @@ def csvLoad(csvPath: str) -> list:  # 解析csv文件
 
 
 def lookfile(name: str):  # 给一个名字，自动匹配
+    '''自动根据所给的歌曲名寻找音乐、铺面、图片等文件'''
     info = {}  # 存储谱面的信息，也是返回的值
 
     music = [".mp3", ".wav"]        # 音乐文件，用于接下来的自动读取，方便添加与修改
