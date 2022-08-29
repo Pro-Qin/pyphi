@@ -7,10 +7,8 @@ import sys
 # import cv2
 import time
 from tkinter.messagebox import showerror
-import eyed3
 import pygame
 import pygame.freetype
-from pydub import AudioSegment
 
 import readfile                     # 读取文件
 import welcome as w                 # 欢迎界面
