@@ -56,7 +56,7 @@ def choose():
     image_surface = pygame.transform.scale(image_surface, (window_x,window_y))
 
     #歌曲列表
-    song_list = ['Terrasphere','????']
+    song_list = ['Terrasphere','volcanic']
     #加载歌曲背景
     songpic = pygame.image.load('welcome_src/song.png').convert_alpha()
     songpic = pygame.transform.scale(songpic,(854/4*1.5,183/4*1.5))          #调整大小 
