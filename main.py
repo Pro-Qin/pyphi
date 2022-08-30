@@ -149,7 +149,7 @@ image_surface = pygame.transform.scale(image_surface, (WINDOW_X, WINDOW_Y))
 
 
 pygame.mixer.music.load(info_data["music"])  # 加载歌曲
-songlength = helper.get_voice_time_secs()(info_data["music"])
+songlength = helper.get_voice_time_secs(info_data["music"])
 # songlength=1
 # pygame.mixer.music.play() # 播放
 
@@ -211,8 +211,7 @@ while 1:
             if event.button == 1:
                 if 20 <= pos[0] <= 20 + 20 and 21 <= event.pos[1] <= 21 + 20:
                     exitnow = int(time.time())
-                    if 20 <= pos[0] <= 20 + 20 and 21 <= event.pos[1] <= 21 + 20 and int(
-                            time.time()) - exitnow <= 1:
+                    if 20 <= pos[0] <= 20 + 20 and 21 <= event.pos[1] <= 21 + 20 and int(time.time()) - exitnow <= 1:
                         sys.exit()
 
     if pygame.mixer.music.get_busy():  # 播放BGM
@@ -237,20 +236,20 @@ while 1:
     # screen.bilt(ContinueButton,(WINDOW_X/3-12,WINDOW_Y/4))                                      #继续
     # screen.bilt(RestartButton,(WINDOW_X/3*2-12*2,WINDOW_Y/4*2))                                 #重启
     # screen.bilt(StopButton,(WINDOW_X/2*3-12*3,WINDOW_Y/4*3))                                    #退出
-    SongsName = f2.render_to(screen, [30, 503], info_data['other'][0][1:], fgcolor=(
-        255, 255, 255), size=21)  # 歌曲名
-    SongsLevel = f1.render_to(screen, [865, 507], info_data['other'][1], fgcolor=(
-        255, 255, 255), size=18)  # 歌曲等级
-    mark = f1.render_to(screen, [809, 25], str(
-        nummark), fgcolor=(255, 255, 255), size=28)  # 分数
+    SongsName = f2.render_to(screen, [30, 503], info_data['other'][0][1:], 
+                            fgcolor=(255, 255, 255), size=21)  # 歌曲名
+    SongsLevel = f1.render_to(screen, [865, 507], info_data['other'][1], 
+                            fgcolor=(255, 255, 255), size=18)  # 歌曲等级
+    mark = f1.render_to(screen, [809, 25], 
+                        str(nummark), fgcolor=(255, 255, 255), size=28)  # 分数
     try:
-        otime = f1.render_to(screen, [0, 5],
-                             '{}/{}'.format(time.strftime("%M:%S",
-                                            time.localtime(less)), songlengthstr),
-                             fgcolor=(255, 255, 255), size=12)
+        otime = f1.render_to(screen, [0, 5], 
+                            '{}/{}'.format(time.strftime("%M:%S",time.localtime(less)), songlengthstr),
+                            fgcolor=(255, 255, 255), size=12)
     except TypeError:
-        otime = f1.render_to(screen, [0, 5], '{}/{}'.format(songlengthstr, songlengthstr), fgcolor=(255, 255, 255),
-                             size=12)
+        otime = f1.render_to(screen, [0, 5], 
+                            '{}/{}'.format(songlengthstr, songlengthstr), 
+                            fgcolor=(255, 255, 255), size=12)
 
     # ----------------------------------
     screen.blit(judgeLine, (0, WINDOW_Y / 2))
