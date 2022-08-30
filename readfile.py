@@ -8,10 +8,11 @@ def csvLoad(csvPath: str) -> list:  # 解析csv文件
 
 
 def lookfile(name: str):  # 给一个名字，自动匹配
+    '''自动根据所给的歌曲名寻找音乐、铺面、图片等文件'''
     info = {}  # 存储谱面的信息，也是返回的值
 
     music = [".mp3", ".wav"]        # 音乐文件，用于接下来的自动读取，方便添加与修改
-    chart = [".pec", ".json"]       # 谱面文件
+    chart = [".pyphi",".pec", ".json"]       # 谱面文件
     picture = [".png", ".jpg",]     # 图片文件
     csv = [".csv"]
     csvRead = True  # csv文件是否读取?
@@ -57,4 +58,4 @@ def lookfile(name: str):  # 给一个名字，自动匹配
 
 
 if __name__ == '__main__':
-    print(lookfile('.\preset\Terrasphere'))
+    print(lookfile('volcanic'))

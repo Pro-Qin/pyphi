@@ -41,19 +41,25 @@ def load_rpe(rpe_path):
         chart_json["BPMList"]
     )
 
-    type2note = {2: element.Hold, 1: element.Tap, 3: element.Flick, 4: element.Drag}
+    type2note = {2: element.Hold, 1: element.Tap,
+                 3: element.Flick, 4: element.Drag}
     x_scale = core.NOTE_X_SCALE
     index = 0
     for judgeline_data in chart_json["judgeLineList"]:
         judge_line = element.JudgeLine()
         judge_line.id = index
 
-        judge_line.x_object = alterobj.LineXObject(judgeline_data["eventLayers"][0]["moveXEvents"])
-        judge_line.y_object = alterobj.LineYObject(judgeline_data["eventLayers"][0]["moveYEvents"])
-        judge_line.angle_object = alterobj.AngleObject(judgeline_data['eventLayers'][0]['rotateEvents'])
+        judge_line.x_object = alterobj.LineXObject(
+            judgeline_data["eventLayers"][0]["moveXEvents"])
+        judge_line.y_object = alterobj.LineYObject(
+            judgeline_data["eventLayers"][0]["moveYEvents"])
+        judge_line.angle_object = alterobj.AngleObject(
+            judgeline_data['eventLayers'][0]['rotateEvents'])
         # judge_line.speed_object = alterobj.LineSpeedObject(judgeline_data['eventLayers'][0]['speedEvents'])
-        judge_line.alpha_object = alterobj.AlphaObject(judgeline_data['eventLayers'][0]['alphaEvents'])
-        judge_line.note_y_object = alterobj.NoteYObject(judgeline_data['eventLayers'][0]['speedEvents'])
+        judge_line.alpha_object = alterobj.AlphaObject(
+            judgeline_data['eventLayers'][0]['alphaEvents'])
+        judge_line.note_y_object = alterobj.NoteYObject(
+            judgeline_data['eventLayers'][0]['speedEvents'])
         if judgeline_data.get("notes", False):
             for note_data in judgeline_data["notes"]:
                 if not note_data["isFake"]:
@@ -76,7 +82,8 @@ def load_rpe(rpe_path):
                         )
                 judge_line.notes.append(note)
 
-            judge_line.notes.sort(key=lambda _note: [_note.at, _note.id != element.Note.HOLD])
+            judge_line.notes.sort(
+                key=lambda _note: [_note.at, _note.id != element.Note.HOLD])
 
             for note in judge_line.notes:
                 if note.id == element.Note.HOLD:
@@ -141,7 +148,8 @@ def load_dir(dir_path):
     with zipfile.ZipFile("./cache/temp.zip", 'w', zipfile.ZIP_STORED) as temp_zip:
         files = os.listdir(dir_path)
         for file in files:
-            temp_zip.write(dir_path + ("" if dir_path[-1] in ['\\', '/'] else "/") + file, arcname=file)
+            temp_zip.write(
+                dir_path + ("" if dir_path[-1] in ['\\', '/'] else "/") + file, arcname=file)
 
     load_zip("./cache/temp.zip")
 
@@ -364,6 +372,7 @@ def load_beatmap(path):
 #     json2rpe.convert(json_path, f"./cache/cache_{_id}.json")
 #     load_rpe(f"./cache/cache_{_id}.json")
 
+
 if __name__ == '__main__':
     # load_dir("resources/56769032")
-    pec2rpe.convert("./resources/56769032/56769032.json", "dfksj")
+    pec2rpe.convert("others/simPhi/resources/56769032/56769032.json", "dfksj")
