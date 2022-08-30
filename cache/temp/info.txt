@@ -1,0 +1,9 @@
+#
+Name: We Are Hardcore
+Path: 55773123
+Song: 55773123.mp3
+Picture: 55773123.png
+Chart: 55773123.json
+Level: IN Lv.14
+Composer: lixound
+Charter: GHMK is Hardcore

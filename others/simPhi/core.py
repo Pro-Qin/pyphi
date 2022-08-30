@@ -18,20 +18,22 @@ class Eval:
 
     def __init__(self):
         self.goods = [
-            pygame.image.load(f"./resources/texture/img-{i}_good.png") for i in range(1, 31)
+            pygame.image.load(f"others/simPhi/resources/texture/img-{i}_good.png") for i in range(1, 31)
         ]
         self.perfects = [
-            pygame.image.load(f"./resources/texture/img-{i}_perfect.png") for i in range(1, 31)
+            pygame.image.load(f"others/simPhi/resources/texture/img-{i}_perfect.png") for i in range(1, 31)
         ]
 
         for index in range(len(self.goods)):
             self.goods[index] = pygame.transform.smoothscale(
-                self.goods[index], (self.goods[index].get_width() / 1.5, self.goods[index].get_height() / 1.5)
+                self.goods[index], (self.goods[index].get_width(
+                ) / 1.5, self.goods[index].get_height() / 1.5)
             )
 
         for index in range(len(self.perfects)):
             self.perfects[index] = pygame.transform.smoothscale(
-                self.perfects[index], (self.perfects[index].get_width() / 1.5, self.perfects[index].get_height() / 1.5)
+                self.perfects[index], (self.perfects[index].get_width(
+                ) / 1.5, self.perfects[index].get_height() / 1.5)
             )
 
     def __getitem__(self, item: T.Tuple[str, int]):
@@ -57,14 +59,15 @@ class Texture:
 
     def __init__(self):
         self.id2texture = {
-            Texture.Tap: pygame.image.load("./resources/texture/Tap2.png"),
-            Texture.TapHL: pygame.image.load("./resources/texture/Tap2HL.png"),
-            Texture.Drag: pygame.image.load("./resources/texture/Drag2.png"),
-            Texture.DragHL: pygame.image.load("./resources/texture/DragHL.png"),
-            Texture.Flick: pygame.image.load("./resources/texture/Flick2.png"),
-            Texture.FlickHL: pygame.image.load("./resources/texture/Flick2HL.png"),
-            Texture.Hold: pygame.image.load("./resources/texture/Hold2.png"),
-            Texture.Line: pygame.image.load("./resources/texture/line.png"),
+            # others/simPhi/resources/texture/Tap2.png
+            Texture.Tap: pygame.image.load("others/simPhi/resources/texture/Tap2.png"),
+            Texture.TapHL: pygame.image.load("others/simPhi/resources/texture/Tap2HL.png"),
+            Texture.Drag: pygame.image.load("others/simPhi/resources/texture/Drag2.png"),
+            Texture.DragHL: pygame.image.load("others/simPhi/resources/texture/DragHL.png"),
+            Texture.Flick: pygame.image.load("others/simPhi/resources/texture/Flick2.png"),
+            Texture.FlickHL: pygame.image.load("others/simPhi/resources/texture/Flick2HL.png"),
+            Texture.Hold: pygame.image.load("others/simPhi/resources/texture/Hold2.png"),
+            Texture.Line: pygame.image.load("others/simPhi/resources/texture/line.png"),
             Texture.EvalImg: Eval()
         }
 
@@ -73,7 +76,8 @@ class Texture:
                 continue
 
             self.id2texture[key] = pygame.transform.smoothscale(
-                self.id2texture[key], (self.id2texture[key].get_width() / 8, self.id2texture[key].get_height()/8)
+                self.id2texture[key], (self.id2texture[key].get_width(
+                ) / 8, self.id2texture[key].get_height()/8)
             )
 
     def __getitem__(self, item: int):
@@ -106,9 +110,9 @@ NOTE_THETA = math.degrees(math.atan(NOTE_HEIGHT/NOTE_WIDTH))
 
 BAR_WIDTH = 22
 
-TAP_SOUND = pygame.mixer.Sound("./resources/audio/tap.wav")
-DRAG_SOUND = pygame.mixer.Sound("./resources/audio/drag.wav")
-FLICK_SOUND = pygame.mixer.Sound("./resources/audio/flick.wav")
+TAP_SOUND = pygame.mixer.Sound("others/simPhi/resources/audio/tap.wav")
+DRAG_SOUND = pygame.mixer.Sound("others/simPhi/resources/audio/drag.wav")
+FLICK_SOUND = pygame.mixer.Sound("others/simPhi/resources/audio/flick.wav")
 
 NOTE_X_SCALE = 220 / 300 * WIDTH / 1000
 LINE_X_SCALE = 0.8 * WIDTH / 1000

@@ -2,23 +2,25 @@
 # Saira 2.x版本字体
 
 
-import pygame  # 游戏引擎
-from PIL import Image  # 图片处理
-import zipfile  # 解压文件
-import readfile  # 读取文件
-import sys  # 退出操作
-import os  # 文件操作
-# import cv2              #图像操作
-import time  # 时间操作
-from tkinter.messagebox import showinfo, showwarning, showerror, askyesno
-# 消息框
-import random  # 随机
-from pydub import AudioSegment
-# 音频格式转化
-import pygame.freetype  # 文本
-import eyed3  # 音频文件处理
-import welcome as w
-from readchart import *
+import os
+import sys
+# import cv2
+import time
+from tkinter.messagebox import showerror
+import pygame
+import pygame.freetype
+import tinytag
+from pydub import *
+import eyed3
+
+import easing                       # 缓动函数
+import element
+import core
+import readfile                     # 读取文件
+import welcome as w                 # 欢迎界面
+import easing                       # 缓动函数
+import helper                       # def函数封装
+import readchart                    # 读取谱面
 
 os.system('clear')  # 清屏
 # -------------------------------------------
@@ -27,15 +29,16 @@ os.system('clear')  # 清屏
 # 2.不能读取铺面
 
 # -------------------------------------------
-window_x = 1920/2
-window_y = 1080/2
+WINDOW_X = 1920 / 2
+WINDOW_Y = 1080 / 2
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 FPS = 60
 combo = 0
 maxcombo = 0
+data = []  # 初始化铺面数据
 clock = pygame.time.Clock()
-all_sprites = pygame.sprite.Group()
+#all_sprites = pygame.sprite.Group()
 nummark = "0000000"
 
 # -------------------------------------------
@@ -43,7 +46,7 @@ w.welcome()  # 欢迎界面
 Gamename = w.choose()  # 选择界面
 w.loading()
 info_data = readfile.lookfile(Gamename)
-data = chart.init(Gamename)
+#data = readchart.init(Gamename)
 
 # --------------------------------------------
 
@@ -53,10 +56,9 @@ pygame.mixer.pre_init(44100, -16, 1, 512)
 pygame.mixer.init()
 pygame.init()
 
+clock = pygame.time.Clock()
 
-#clock = pygame.time.Clock()
-
-screen = pygame.display.set_mode((window_x, window_y))  # 设置主屏窗口
+screen = pygame.display.set_mode((WINDOW_X, WINDOW_Y))  # 设置主屏窗口
 screen.fill((30, 30, 30))  # 填充主窗口的背景颜色，参数值RGB（颜色元组）
 keep_going = True  # 循环标志
 pygame.display.set_caption('Phigros for Python')  # 设置窗口标题
@@ -102,9 +104,9 @@ def get_voice_time_secs(file_name):
     # with open(file_name, 'w+') as f:
     #    f.write(file_data)
     # 加载本地文件
-    voice_file = eyed3.load(file_name)
+    voice_file = tinytag.get(file_name)
     # 获取音频时长
-    secs = int(voice_file.info.time_secs)
+    secs = int(voice_file.duration)
     return secs
 
 # -----------------------------------------------
@@ -112,10 +114,8 @@ def get_voice_time_secs(file_name):
 
 try:  # 检测父文件
     JudgeLine = pygame.image.load("src/JudgeLine.png").convert_alpha()  # 判定线
-    ProgressBar = pygame.image.load(
-        "src/ProgressBar.png").convert_alpha()  # 进度条
-    SongsNameBar = pygame.image.load(
-        "src/SongsNameBar.png").convert_alpha()  # 歌曲名条
+    ProgressBar = pygame.image.load("src/ProgressBar.png").convert_alpha()  # 进度条
+    SongsNameBar = pygame.image.load("src/SongsNameBar.png").convert_alpha()  # 歌曲名条
     Pause = pygame.image.load("src/Pause.png").convert_alpha()  # 暂停
     clickRaw = pygame.image.load("src/clickRaw.png").convert_alpha()  # 点击特效
     Tap = pygame.image.load("src/Tap.png").convert_alpha()  # Tap
@@ -124,24 +124,18 @@ try:  # 检测父文件
     Drag = pygame.image.load("src/Drag.png").convert_alpha()  # Drag
     DragHL = pygame.image.load("src/DragHL.png").convert_alpha()  # Drag高亮
     HoldHead = pygame.image.load("src/HoldHead.png").convert_alpha()  # Hold头部
-    HoldHeadHL = pygame.image.load(
-        "src/HoldHeadHL.png").convert_alpha()  # Hold头部高亮
+    HoldHeadHL = pygame.image.load("src/HoldHeadHL.png").convert_alpha()  # Hold头部高亮
     Hold = pygame.image.load("src/Hold.png").convert_alpha()  # Hold身子
     HoldHL = pygame.image.load("src/HoldHL.png").convert_alpha()  # Hold身子高亮
     HoldEnd = pygame.image.load("src/HoldEnd.png").convert_alpha()  # Hold尾部
     Flick = pygame.image.load("src/Flick.png").convert_alpha()  # Flick
     FlickHL = pygame.image.load("src/FlickHL.png").convert_alpha()  # Flick高亮
-    Pic_LevelOver1 = pygame.image.load(
-        "src/LevelOver1.png").convert_alpha()  # LevelOver1中间成果条
-    Pic_LevelOver3 = pygame.image.load(
-        "src/LevelOver3.png").convert_alpha()  # LevelOver3等级背景
-    Pic_LevelOver4 = pygame.image.load(
-        "src/LevelOver4.png").convert_alpha()  # LevelOver4名字背景
-    Pic_LevelOver5 = pygame.image.load(
-        "src/LevelOver5.png").convert_alpha()  # LevelOver5名字左竖
+    Pic_LevelOver1 = pygame.image.load("src/LevelOver1.png").convert_alpha()  # LevelOver1中间成果条
+    Pic_LevelOver3 = pygame.image.load("src/LevelOver3.png").convert_alpha()  # LevelOver3等级背景
+    Pic_LevelOver4 = pygame.image.load("src/LevelOver4.png").convert_alpha()  # LevelOver4名字背景
+    Pic_LevelOver5 = pygame.image.load("src/LevelOver5.png").convert_alpha()  # LevelOver5名字左竖
     Rank = pygame.image.load("src/Rank.png").convert_alpha()  # 等级图片
-    ContinueButton = pygame.image.load(
-        "src/continue.png").convert_alpha()  # 继续
+    ContinueButton = pygame.image.load("src/continue.png").convert_alpha()  # 继续
     RestartButton = pygame.image.load("src/restart.png").convert_alpha()  # 重启
     StopButton = pygame.image.load("src/stop.png").convert_alpha()  # 退出
     # -------------------------------------------------------------------------------------
@@ -153,12 +147,18 @@ try:  # 检测父文件
 except FileNotFoundError:
     showerror('读取出错：未发现父文件')
 
+SongsNameBar = pygame.transform.scale(SongsNameBar, (4, 21))  # 歌曲名条调整大小
+ProgressBar = pygame.transform.scale(ProgressBar, (WINDOW_X+5, 5))  # 进度条儿调整大小
+Pause = pygame.transform.scale(Pause, (20, 20))  # 暂停按钮调整大小
+blackpic = pygame.transform.scale(blackpic, (WINDOW_X, WINDOW_Y))
+JudgeLine = pygame.transform.scale(JudgeLine, (WINDOW_Y*2.5, 5))
+
 
 #background_image = cv2.GaussianBlur(src, (15, 15), 0)
 # im = Image.open(info_data["picture"]).point(lambda p = p * 0.5)
 image_surface = pygame.image.load(info_data["picture"]).convert()  # 加载背景
 image_surface.scroll(0, 0)
-image_surface = pygame.transform.scale(image_surface, (window_x, window_y))
+image_surface = pygame.transform.scale(image_surface, (WINDOW_X, WINDOW_Y))
 
 
 pygame.mixer.music.load(info_data["music"])  # 加载歌曲
@@ -166,12 +166,6 @@ songlength = get_voice_time_secs(info_data["music"])
 # songlength=1
 # pygame.mixer.music.play() # 播放
 
-datanum = 0
-with open(info_data["chart"]) as f:  # 读取铺面
-    line = f.readline()
-    data.append(line)
-    datanum += 1
-f.close()
 
 # if info_data['音乐'][-4:] == 'ogg':#检测音乐格式
 #    print('读取音乐文件格式正确!')
@@ -188,33 +182,25 @@ if pygame.mixer.music.get_busy() == False:  # 播放BGM
 f1 = pygame.freetype.Font(r"src/Exo-Regular.pfb.ttf", 12)
 f2 = pygame.freetype.Font(r"src/Saira-Medium.ttf", 12)
 font_title = pygame.freetype.Font(r"src/Saira-Medium.ttf", 14)
+font20 = pygame.font.Font("src/cmdysj.ttf", 20)
+f3 = pygame.font.Font("src/cmdysj.ttf", 12)
 # f1rect=f1.render_to(screen,[30,500],info_data["名称"],fgcolor=(255,255,255),size=25)
 
 # -----------------------------------------------
-
-SongsNameBar = pygame.transform.scale(SongsNameBar, (4, 21))  # 歌曲名条调整大小
-ProgressBar = pygame.transform.scale(ProgressBar, (window_x+5, 5))  # 进度条儿调整大小
-Pause = pygame.transform.scale(Pause, (20, 20))  # 暂停按钮调整大小
-blackpic = pygame.transform.scale(blackpic, (window_x, window_y))
-JudgeLine = pygame.transform.scale(JudgeLine, (window_y*2.5, 5))
-
-ProgressX = -window_x+10  # 进度条X坐标(定位坐标在图像左上角，完成则为x0)(加载出图像需要时间)
-ProgressMoveX = songlength / window_x  # 进度条移动速度
+ProgressX = -WINDOW_X+10  # 进度条X坐标(定位坐标在图像左上角，完成则为x0)(加载出图像需要时间)
+ProgressMoveX = songlength / WINDOW_X  # 进度条移动速度
 # print(info_data,'\n',data)
 ContinueButton.set_alpha(100)
 RestartButton.set_alpha(100)
 StopButton.set_alpha(100)
-# -----------------------------------------------
-# 谱面识别！
-
-
 # -----------------------------------------------
 # 如果没有下列主循环代码，运行结果会一闪而过
 darken_screen(150)
 time_begin = int(time.time())
 songlengthstr = time.strftime("%M:%S", time.localtime(songlength))
 while 1:
-    0/0
+    # 0/0
+    clock.tick()
     now = int(time.time())
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -236,35 +222,32 @@ while 1:
         current %= songlength  # 如果循环播放，需要处理
         rate = current / songlength
         # 进度条X坐标(定位坐标在图像左上角，完成则为x0)(加载出图像需要时间)
-        ProgressX = -window_x - 5 + int(rate * window_x)
+        ProgressX = -WINDOW_X - 5 + int(rate * WINDOW_X)
         less = now-time_begin
     else:
         less = str(less)
         less = songlengthstr
 
     # 更新屏幕内容
-    screen.blit(Tap, data["LineList"][0][pos])
+    screen.blit(Tap, data["LineList"][0]['pos'])
     screen.blit(image_surface, (0, 0))  # 背景
     screen.blit(blackpic, (0, 0))  # 黑色掩盖
     screen.blit(Pause, (20, 21))  # 暂停按钮
     screen.blit(SongsNameBar, (20, 500))  # 歌曲名条
     screen.blit(ProgressBar, (ProgressX, 0))  # 进度条儿
-    # screen.bilt(ContinueButton,(window_x/3-12,window_y/4))                                      #继续
-    # screen.bilt(RestartButton,(window_x/3*2-12*2,window_y/4*2))                                 #重启
-    # screen.bilt(StopButton,(window_x/2*3-12*3,window_y/4*3))                                    #退出
-    SongsName = f2.render_to(
-        screen, [30, 503], info_data['other'][0], fgcolor=WHITE, size=21)  # 歌曲名
-    SongsLevel = f1.render_to(
-        screen, [865, 507], info_data['other'][1], fgcolor=WHITE, size=18)  # 歌曲等级
-    mark = f1.render_to(screen, [809, 25], str(
-        nummark), fgcolor=WHITE, size=28)  # 分数
+    # screen.bilt(ContinueButton,(WINDOW_X/3-12,WINDOW_Y/4))                                      #继续
+    # screen.bilt(RestartButton,(WINDOW_X/3*2-12*2,WINDOW_Y/4*2))                                 #重启
+    # screen.bilt(StopButton,(WINDOW_X/2*3-12*3,WINDOW_Y/4*3))                                    #退出
+    SongsName = f2.render_to(   screen, [30, 503],                  info_data['other'][0],                          fgcolor=WHITE, size=21)  # 歌曲名
+    SongsLevel = f1.render_to(  screen, [865, 507],                 info_data['other'][1],                          fgcolor=WHITE, size=18)  # 歌曲等级
+    mark = f1.render_to(        screen, [809, 25],                  str(nummark),                                   fgcolor=WHITE, size=28)  # 分数
+    fpsnum = f1.render_to(      screen, [WINDOW_X-16, 4],           str(int(clock.get_fps())),                      fgcolor=WHITE, size=12)
+    copyright = f3.render_to(   screen, [WINDOW_X-16, WINDOW_Y-8],  "Phigros for Python - Code by Qin_zzq and xi2p",fgcolor=WHITE, size=10)
     # ----------------------------------------------------调试显示区
-    ts_mousexy = f1.render_to(screen, [80, 5], 'MousePos:{}'.format(
-        pygame.mouse.get_pos()), fgcolor=WHITE, size=12)
-    ts_music = f1.render_to(screen, [220, 5], 'Music:{}'.format(
-        pygame.mixer.music.get_busy()), fgcolor=WHITE, size=12)
-    ts_numnote = f1.render_to(screen, [320, 5], 'NumOfNote:{}'.format(
-        numOfNotes), fgcolor=WHITE, size=12)
+    ts_mousexy = f1.render_to(screen, [80, 5], 'MousePos:{}'.format(pygame.mouse.get_pos()), fgcolor=WHITE, size=12)
+    ts_music = f1.render_to(screen, [220, 5], 'Music:{}'.format(pygame.mixer.music.get_busy()), fgcolor=WHITE, size=12)
+    ts_numnote = f1.render_to(screen, [320, 5], 'NumOfNote:{}'.format(data['numOfNotes']), fgcolor=WHITE, size=12)
+
     # ----------------------------------------------------调试显示区
     try:
         otime = f1.render_to(screen, [0, 5], '{}/{}'.format(time.strftime(
@@ -274,7 +257,7 @@ while 1:
                              0, 5], '{}/{}'.format(songlengthstr, songlengthstr), fgcolor=WHITE, size=12)
 
     # ----------------------------------
-    screen.blit(JudgeLine, (0, window_y/2))
+    screen.blit(JudgeLine, (0, WINDOW_Y/2))
     # ----------------------------------
 
     mouse.update()  # 更新鼠标位置

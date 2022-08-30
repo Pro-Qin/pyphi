@@ -10,7 +10,7 @@ import tinytag
 
 pygame.init()
 
-data.load_beatmap("../downloaded_beatmap/Party in the HOLLOWood.zip")
+data.load_beatmap("others/simPhi/downloaded_beatmap/55773123.zip")
 
 # ---------- PYGAME INIT ----------
 # 初始化音频
@@ -18,7 +18,8 @@ pygame.mixer.init()
 pygame.mixer.music.load(core.SONG)
 
 # 初始化图像
-pil_blurred = Image.open(core.IMAGE).filter(ImageFilter.GaussianBlur(radius=25))
+pil_blurred = Image.open(core.IMAGE).filter(
+    ImageFilter.GaussianBlur(radius=25))
 brightEnhancer = ImageEnhance.Brightness(pil_blurred)
 img = brightEnhancer.enhance(0.5)
 img.convert("RGB").save("./cache/bg_b_b.jpg", quality=75)
@@ -27,14 +28,15 @@ background = pygame.transform.smoothscale(pygame.image.load("./cache/bg_b_b.jpg"
                                           (core.WIDTH, core.HEIGHT))
 
 # 初始化字体
-font40 = pygame.font.Font("./resources/cmdysj.ttf", 40)
-font30 = pygame.font.Font("./resources/cmdysj.ttf", 30)
-font25 = pygame.font.Font("./resources/cmdysj.ttf", 25)
-font20 = pygame.font.Font("./resources/cmdysj.ttf", 20)
+font40 = pygame.font.Font("others/simPhi/resources/cmdysj.ttf", 40)
+font30 = pygame.font.Font("others/simPhi/resources/cmdysj.ttf", 30)
+font25 = pygame.font.Font("others/simPhi/resources/cmdysj.ttf", 25)
+font20 = pygame.font.Font("others/simPhi/resources/cmdysj.ttf", 20)
 
 name_text = font25.render("| " + core.NAME, True, (255, 255, 255))
 level_text = font25.render(core.LEVEL, True, (255, 255, 255))
-copyright_text = font20.render("SimPhi Project - Code by xi2p", True, (200, 200, 200))
+copyright_text = font20.render(
+    "SimPhi Project - Code by xi2p", True, (200, 200, 200))
 
 # 初始化界面
 screen = pygame.display.set_mode((core.WIDTH, core.HEIGHT))
@@ -109,7 +111,8 @@ scene = PREPARE
 # ---------- GAME START ----------
 
 start = time.time()
-beat = core.BeatObject.get_value((pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
+beat = core.BeatObject.get_value(
+    (pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
 
 # ---------- GAME START ----------
 
@@ -143,7 +146,8 @@ while 1:
             continue
 
         if beat < 0:
-            beat = core.BeatObject.get_value((pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
+            beat = core.BeatObject.get_value(
+                (pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
             continue
 
         screen.blit(background, (0, 0))
@@ -216,13 +220,18 @@ while 1:
 
         combo_text = font30.render("COMBO", True, (255, 255, 255))
         combo_num_text = font40.render(str(note_num), True, (255, 255, 255))
-        score_text = font30.render(str(int(note_num / core.NOTE_NUM * 1000000)).rjust(7, '0'), True, (255, 255, 255))
-        fps_text = font25.render(str(int(clock.get_fps())).rjust(3, "0"), True, (255, 255, 255))
-        offset_text = font20.render(f"OFFSET={core.OFFSET}", True, (255, 255, 255))
+        score_text = font30.render(
+            str(int(note_num / core.NOTE_NUM * 1000000)).rjust(7, '0'), True, (255, 255, 255))
+        fps_text = font25.render(
+            str(int(clock.get_fps())).rjust(3, "0"), True, (255, 255, 255))
+        offset_text = font20.render(
+            f"OFFSET={core.OFFSET}", True, (255, 255, 255))
 
         if note_num >= 3:
-            surface.blit(combo_text, (core.WIDTH / 2 - combo_text.get_width() / 2, 40))
-            surface.blit(combo_num_text, (core.WIDTH / 2 - combo_num_text.get_width() / 2, 0))
+            surface.blit(combo_text, (core.WIDTH / 2 -
+                         combo_text.get_width() / 2, 40))
+            surface.blit(combo_num_text, (core.WIDTH / 2 -
+                         combo_num_text.get_width() / 2, 0))
 
         surface.blit(score_text, (core.WIDTH - score_text.get_width(), 0))
         surface.blit(fps_text, (0, 0))
@@ -245,7 +254,8 @@ while 1:
         pygame.display.flip()
         clock.tick(120)
         # beat = core.BeatObject.get_value(skip/60)
-        beat = core.BeatObject.get_value((pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
+        beat = core.BeatObject.get_value(
+            (pygame.mixer.music.get_pos() / 1000 + skip - core.OFFSET / 1000) / 60)
 
         # ---------- REFRESH ----------
 
@@ -277,9 +287,10 @@ while 1:
                              (0,
                               core.HEIGHT / 2 - 3),
                              (
-                                 (min(time.time() - start, 1)) * 8 / core.PREPARE_DURATION * core.WIDTH,
+                                 (min(time.time() - start, 1)) * 8 /
+                                 core.PREPARE_DURATION * core.WIDTH,
                                  6)
-                         ))
+        ))
 
         # ---------- ESSENTIAL ----------
 
@@ -329,8 +340,10 @@ while 1:
             scene = END_2
             background_clear = pygame.transform.smoothscale(pygame.image.load(core.IMAGE),
                                                             (core.WIDTH*0.4, core.HEIGHT*0.5))
-            t2x = easing.code2FuncDict[4](0, core.END_DURATION_2, core.WIDTH/2, 0)
-            phi_image = pygame.image.load("./resources/texture/phi.png")
+            t2x = easing.code2FuncDict[4](
+                0, core.END_DURATION_2, core.WIDTH/2, 0)
+            phi_image = pygame.image.load(
+                "others/simPhi/resources/texture/phi.png")
             score_text = font40.render("1000000", True, (255, 255, 255))
 
             perfect_text = font20.render("Perfect", True, (255, 255, 255))
@@ -338,12 +351,14 @@ while 1:
             bad_text = font20.render("Bad", True, (255, 255, 255))
             miss_text = font20.render("Miss", True, (255, 255, 255))
 
-            perfect_num_text = font20.render(f"{note_num}", True, (255, 255, 255))
+            perfect_num_text = font20.render(
+                f"{note_num}", True, (255, 255, 255))
             good_num_text = font20.render("0", True, (255, 255, 255))
             bad_num_text = font20.render("0", True, (255, 255, 255))
             miss_num_text = font20.render("0", True, (255, 255, 255))
 
-            pygame.mixer.music.load("./resources/audio/GameOver.wav")
+            pygame.mixer.music.load(
+                "others/simPhi/resources/audio/GameOver.wav")
             pygame.mixer.music.play(-1, fade_ms=200)
             start = time.time()
             continue
@@ -361,15 +376,21 @@ while 1:
 
         combo_text = font30.render("COMBO", True, (255, 255, 255))
         combo_num_text = font40.render(str(note_num), True, (255, 255, 255))
-        score_text = font30.render(str(int(note_num / core.NOTE_NUM * 1000000)).rjust(7, '0'), True, (255, 255, 255))
-        fps_text = font25.render(str(int(clock.get_fps())).rjust(3, "0"), True, (255, 255, 255))
-        offset_text = font20.render(f"OFFSET={core.OFFSET}", True, (255, 255, 255))
+        score_text = font30.render(
+            str(int(note_num / core.NOTE_NUM * 1000000)).rjust(7, '0'), True, (255, 255, 255))
+        fps_text = font25.render(
+            str(int(clock.get_fps())).rjust(3, "0"), True, (255, 255, 255))
+        offset_text = font20.render(
+            f"OFFSET={core.OFFSET}", True, (255, 255, 255))
 
         if note_num >= 3:
-            surface.blit(combo_text, (core.WIDTH / 2 - combo_text.get_width() / 2, 40 - delta_y))
-            surface.blit(combo_num_text, (core.WIDTH / 2 - combo_num_text.get_width() / 2, 0 - delta_y))
+            surface.blit(combo_text, (core.WIDTH / 2 -
+                         combo_text.get_width() / 2, 40 - delta_y))
+            surface.blit(combo_num_text, (core.WIDTH / 2 -
+                         combo_num_text.get_width() / 2, 0 - delta_y))
 
-        surface.blit(score_text, (core.WIDTH - score_text.get_width(), 0 - delta_y))
+        surface.blit(score_text, (core.WIDTH -
+                     score_text.get_width(), 0 - delta_y))
         surface.blit(fps_text, (0, 0 - delta_y))
         surface.blit(offset_text, (0, fps_text.get_height() - delta_y))
 
@@ -423,7 +444,8 @@ while 1:
             core.WIDTH * 0.05 - delta_x - 5, core.HEIGHT * 0.15 - 5,
             core.WIDTH * 0.4 + 10, core.HEIGHT * 0.5 + 10,
         ))
-        surface.blit(background_clear, (core.WIDTH*0.05 - delta_x, core.HEIGHT*0.15))
+        surface.blit(background_clear, (core.WIDTH *
+                     0.05 - delta_x, core.HEIGHT*0.15))
 
         # 右半边
         pygame.draw.rect(surface, (32, 32, 32, 225), (
@@ -437,50 +459,60 @@ while 1:
         ))
 
         surface.blit(phi_image, (
-            core.WIDTH * 0.57 + delta_x - 5, core.HEIGHT * 0.3 - 5 - phi_image.get_height() / 2
+            core.WIDTH * 0.57 + delta_x - 5, core.HEIGHT *
+            0.3 - 5 - phi_image.get_height() / 2
         ))
 
         surface.blit(score_text, (
-            core.WIDTH * 0.57 + delta_x + 8 + phi_image.get_width(), core.HEIGHT * 0.3 - 5 - score_text.get_height() / 2
+            core.WIDTH * 0.57 + delta_x + 8 + phi_image.get_width(), core.HEIGHT * 0.3 -
+            5 - score_text.get_height() / 2
         ))
 
         surface.blit(perfect_text, (
-            core.WIDTH * 0.55 + delta_x - 5 - 10 + (core.WIDTH * 0.4 + 10) * 0.2 - perfect_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 - 10 +
+            (core.WIDTH * 0.4 + 10) * 0.2 - perfect_text.get_width() / 2,
             core.HEIGHT * 0.545 - 5 - perfect_text.get_height() / 2
         ))
 
         surface.blit(good_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.4 - good_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.4 - good_text.get_width() / 2,
             core.HEIGHT * 0.545 - 5 - good_text.get_height() / 2
         ))
 
         surface.blit(bad_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.6 - bad_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.6 - bad_text.get_width() / 2,
             core.HEIGHT * 0.545 - 5 - bad_text.get_height() / 2
         ))
 
         surface.blit(miss_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.8 - miss_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.8 - miss_text.get_width() / 2,
             core.HEIGHT * 0.545 - 5 - miss_text.get_height() / 2
         ))
 
         surface.blit(perfect_num_text, (
-            core.WIDTH * 0.55 + delta_x - 5 - 10 + (core.WIDTH * 0.4 + 10) * 0.2 - perfect_num_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 - 10 +
+            (core.WIDTH * 0.4 + 10) * 0.2 - perfect_num_text.get_width() / 2,
             core.HEIGHT * 0.615 - 5 - perfect_num_text.get_height() / 2
         ))
 
         surface.blit(good_num_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.4 - good_num_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.4 - good_num_text.get_width() / 2,
             core.HEIGHT * 0.615 - 5 - good_num_text.get_height() / 2
         ))
 
         surface.blit(bad_num_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.6 - bad_num_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.6 - bad_num_text.get_width() / 2,
             core.HEIGHT * 0.615 - 5 - bad_num_text.get_height() / 2
         ))
 
         surface.blit(miss_num_text, (
-            core.WIDTH * 0.55 + delta_x - 5 + (core.WIDTH * 0.4 + 10) * 0.8 - miss_num_text.get_width() / 2,
+            core.WIDTH * 0.55 + delta_x - 5 +
+            (core.WIDTH * 0.4 + 10) * 0.8 - miss_num_text.get_width() / 2,
             core.HEIGHT * 0.615 - 5 - miss_num_text.get_height() / 2
         ))
 
