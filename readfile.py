@@ -58,4 +58,4 @@ def lookfile(name: str):  # 给一个名字，自动匹配
 
 
 if __name__ == '__main__':
-    print(lookfile('.\preset\Terrasphere'))
+    print(lookfile('volcanic'))
