@@ -12,7 +12,7 @@ def lookfile(name: str):  # 给一个名字，自动匹配
     info = {}  # 存储谱面的信息，也是返回的值
 
     music = [".mp3", ".wav"]        # 音乐文件，用于接下来的自动读取，方便添加与修改
-    chart = [".pec", ".json"]       # 谱面文件
+    chart = [".pyphi",".pec", ".json"]       # 谱面文件
     picture = [".png", ".jpg",]     # 图片文件
     csv = [".csv"]
     csvRead = True  # csv文件是否读取?

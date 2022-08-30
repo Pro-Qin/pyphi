@@ -34,7 +34,6 @@ BLACK = (0, 0, 0)
 FPS = 60
 combo = 0
 maxcombo = 0
-data = []  # 初始化铺面数据
 clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 nummark = "0000000"
@@ -44,7 +43,7 @@ w.welcome()  # 欢迎界面
 Gamename = w.choose()  # 选择界面
 w.loading()
 info_data = readfile.lookfile(Gamename)
-numOfNotes, judgeLineList = chart.init(Gamename)
+data = chart.init(Gamename)
 
 # --------------------------------------------
 
@@ -244,7 +243,7 @@ while 1:
         less = songlengthstr
 
     # 更新屏幕内容
-
+    screen.blit(Tap, data["LineList"][0][pos])
     screen.blit(image_surface, (0, 0))  # 背景
     screen.blit(blackpic, (0, 0))  # 黑色掩盖
     screen.blit(Pause, (20, 21))  # 暂停按钮
