@@ -6,30 +6,33 @@ from tkinter import *
 import pygame
 import sys
 import pygame.freetype  #文本
-import os
 import random
 import time
 import platform
 
+
 def welcome():
+    '''已报废，备份'''
     window = Tk()
     window.title('Phigros for Python运行须知')
     window.geometry('420x150')
     #window.resizable(0,0)
 
+
+    def close_window():
+        window.destroy()
+
     swq = platform.system()
 
-    chk1 = Label(window, text="1.已安装Python3.x版本").place(x=2,y=0)
-    chk2 = Label(window, text="2.已安装pygame,PIL,zipfile,readfile,pydub,eyed3库").place(x=2,y=20)
-    chk4 = Label(window, text="3.开发环境为macOS，可能不太兼容").place(x=2,y=40)
-    chk5 = Label(window, text="4.你当前的系统是{}".format(swq)).place(x=2,y=60)
-    chk6 = Label(window, text="5.闪退90%是你的问题，请检查文件是否存在以及格式是否符合要求！").place(x=2,y=80)
-    chk7 = Label(window, text="6.程序尚未开发完整").place(x=2,y=100)
-
-
-    yesbutton = Button(window,text="确定",command=window.destroy).place(x=90,y=120)
-    nobutton  = Button(window,text="取消",command=sys.exit).place(x=170,y=120)
-
+    Label(window, text="1.已安装Python3.x版本").place(x=2,y=0)
+    Label(window, text="2.已安装pygame,PIL,zipfile,readfile,pydub,eyed3库").place(x=2,y=20)
+    Label(window, text="3.开发环境为macOS，可能不太兼容").place(x=2,y=40)
+    Label(window, text="4.你当前的系统是{}".format(swq)).place(x=2,y=60)
+    Label(window, text="5.闪退90%是你的问题，请检查文件是否存在以及格式是否符合要求！").place(x=2,y=80)
+    Label(window, text="6.程序尚未开发完整").place(x=2,y=100)
+    
+    Button(window,text="确定",command=close_window).place(x=90,y=120)
+    Button(window,text="取消",command=sys.exit).place(x=170,y=120)
     window.mainloop()
 
 def choose():
