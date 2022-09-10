@@ -169,7 +169,7 @@ continueButton.set_alpha(100)
 restartButton.set_alpha(100)
 stopButton.set_alpha(100)
 # -----------------------------------------------
-#readchart.int(gamename)
+readchart.load_pyphi(gamename)
 # -----------------------------------------------
 # 如果没有下列主循环代码，运行结果会一闪而过
 darken_screen(150)

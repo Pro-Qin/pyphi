@@ -167,5 +167,5 @@ def load_rpe(gamename: str):
 
 
 if __name__ == '__main__':
-    load_pyphi('volcanic')
+    print(load_rpe('volcanic'))
     0/0
