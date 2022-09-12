@@ -5,17 +5,17 @@
 
 #### 安装教程
 
-1.  安装pygame,PIL,zipfile,readfile,pydub,eyed3,platform,math,tinytag,Pillow库（已安装过就跳过此步）
-2.  运行main.py即可
+1.  安装3.6以上的Python版本，最好为3.10.x版本。
+2.  安装pygame,PIL,zipfile,readfile,pydub,eyed3,platform,math,tinytag,Pillow库。
 
 
 #### 运行须知
 
-0.  已安装Python3.x版本
-1.  已安装pygame,PIL,zipfile,readfile,pydub,eyed3,platform,math,tinytag,Pillow等库
-2.  开发环境为macOS，可能不太兼容
-3.  闪退90%是你的问题，请检查文件是否存在以及格式是否符合要求！
-4.  程序尚未开发完整，bug尚多，欢迎反馈
+1.  已安装Python3.x版本
+2.  已安装pygame,PIL,zipfile,readfile,pydub,eyed3,platform,math,tinytag,Pillow等库
+3.  开发环境为macOS，可能不太兼容
+4.  闪退90%是你的问题，请检查文件是否存在以及格式是否符合要求！
+5.  程序尚未开发完整，bug尚多，欢迎反馈
 
 #### 参与贡献
 
