@@ -3,4 +3,3 @@ Pillow
 tinytag
 pydub
 eyed3
-threading
