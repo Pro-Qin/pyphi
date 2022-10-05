@@ -1,0 +1,56 @@
+name: 将main.py打包成APP文件
+on: [push]
+jobs:
+  Build-The-APP:
+    runs-on: macos-latest
+    steps:
+      - run: echo "这是个${{ github.event_name }}事件."
+      - run: echo "这个Actions运行在Github的${{ runner.os }}服务器上"
+      - run: echo "这个Actions的分支是${{ github.ref }}，该Actions的仓库名是${{ github.repository }}."
+      - name: 开始检查仓库代码
+        uses: actions/checkout@v3
+      #- name: 创建临时文件夹/home/pyphi
+        #run : sudo mkdir /home/pyphi
+      #- name: 开始将 ${{ github.workspace }}/pyphi 克隆至 /home/pyphi
+        #run : sudo cp -r ${{ github.workspace }}/pyphi/ /home/
+      #- run: echo "这个 ${{ github.repository }}/pyphi 的仓库文件和目录已被克隆到服务器的临时文件夹上"
+      #- name: 列出仓库和临时目录
+        #run: ls ${{ github.workspace }}/pyphi;echo "下面是临时目录文件";ls /home/pyphi
+      - name: 列出仓库文件
+        run: ls ${{ github.workspace }}
+      - name: 尝试安装Python
+        uses: actions/setup-python@v3
+      - name: 尝试安装FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v1
+      - name: 尝试安装Python版的pyinstaller
+        run : python -m pip install pyinstaller
+      #- name: 尝试安装requirements给出的必要库名
+        #run : python -m pip install -r /home/pyphi/requirements.txt
+      #- name : 开始生成打包所需配置文件
+        #run : pyinstaller -F /home/pyphi/main.py
+      - name: 尝试安装requirements给出的必要库名
+        run : python -m pip install -r ${{ github.workspace }}/requirements.txt
+      - name : 开始生成打包文件
+        #run : pyinstaller -F ${{ github.workspace }}/pyphi/main.py
+        run : pyinstaller -w -D ${{ github.workspace }}/main.py
+      #- name: 列出临时打包目录下的文件和目录
+        #run: ls /home/pyphi;echo "以下是克隆仓库中的文件";ls ${{ github.workspace }};echo "以下是克隆仓库中的dist文件夹";ls ${{ github.workspace }}/dist
+      - name: 列出打包后的仓库文件
+        run: ls ${{ github.workspace }};echo "以下是克隆仓库中的dist文件夹";ls ${{ github.workspace }}/dist;echo "以下是克隆仓库中的dist文件夹中的main文件夹";ls ${{ github.workspace }}/dist/main
+      #- name : 重命名spec文件
+        #run : mv ${{ github.workspace }}/main.spec /home/pyphi/build.spec
+      #- name: 开始使用PyInstaller-Windows-Actions打包文件
+        #uses: JackMcKew/pyinstaller-action-windows@main
+        #with:
+          #path: /home/pyphi
+      #- name: 列出PyInstaller-Windows-Actions打包目录下的文件和目录
+        #run: |
+          #ls /home/pyphi;echo "下面是dist文件夹文件";ls /home/pyphi/dist;echo "下面是dist文件夹下的windows文件夹";ls /home/pyphi/dist/windows
+      - name : 将打包完的exe文件复制到原目录下
+        run: mv ${{ github.workspace }}/dist/main.app ${{ github.workspace }};mkdir ${{ github.workspace }}/main;cp -r ${{ github.workspace }}/dist/main/ ${{ github.workspace }}/main/
+      - name : 开始上传文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: Hello-Pyinstaller-for-Actions
+          path: ${{ github.workspace }}/pyphi
+      - run: echo "这份Actions最终的状态是${{ job.status }}."
