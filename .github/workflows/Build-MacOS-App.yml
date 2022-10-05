@@ -51,6 +51,6 @@ jobs:
       - name : 开始上传文件
         uses: actions/upload-artifact@v2
         with:
-          name: Hello-Pyinstaller-for-Actions
+          name: The-Pyinstaller-for-Actions-Make-APP
           path: ${{ github.workspace }}/pyphi
       - run: echo "这份Actions最终的状态是${{ job.status }}."
