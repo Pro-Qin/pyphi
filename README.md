@@ -1,6 +1,6 @@
 # pyphi
 
-免Python版:如果后面的标签为绿色，证明这个版本有打包版本。反之没有(通常生成出错会通知作者)(Windows:[![将main.py打包成EXE文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml/badge.svg?event=push)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml))(MacOS:[![将main.py打包成APP文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml/badge.svg?event=push)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml))
+免Python版:如果后面的标签为绿色，证明这个版本有打包版本(反之没有)。在Releases可以找最新打包的版本(Windows:[![将main.py打包成EXE文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml/badge.svg?event=push)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml))(MacOS:[![将main.py打包成APP文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml/badge.svg?event=push)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml))
 
 #### 介绍
 这里是pyphi，诞生于Bilibili，全称为"Phigros for Python"。此项目是由Python编程语言编写的Phigros模拟器。此项目仍在开发，敬请谅解。    
