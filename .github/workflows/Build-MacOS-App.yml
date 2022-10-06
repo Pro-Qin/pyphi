@@ -20,8 +20,8 @@ jobs:
         run: ls ${{ github.workspace }}
       - name: 尝试安装Python
         uses: actions/setup-python@v3
-      - name: 尝试安装FFmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v1
+      #- name: 尝试安装FFmpeg
+        #uses: FedericoCarboni/setup-ffmpeg@v1
       - name: 尝试安装Python版的pyinstaller
         run : python -m pip install pyinstaller
       #- name: 尝试安装requirements给出的必要库名
