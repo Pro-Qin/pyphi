@@ -1,5 +1,7 @@
 # pyphi
 
+免Python版:(Windows:[![将main.py打包成EXE文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml/badge.svg)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-WindowsNT-EXE.yml))(MacOS:[![将main.py打包成APP文件](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml/badge.svg)](https://github.com/Pro-Qin/pyphi/actions/workflows/Build-MacOS-App.yml))
+
 #### 介绍
 这里是pyphi，诞生于Bilibili，全称为"Phigros for Python"。此项目是由Python编程语言编写的Phigros模拟器。此项目仍在开发，敬请谅解。    
 
