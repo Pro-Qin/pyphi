@@ -1,3 +1,4 @@
-pygame~=2.1.2
-tinytag~=1.8.1
-Pillow~=8.4.0
+eyed3
+tinytag
+Pillow
+matplotlib

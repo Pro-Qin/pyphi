@@ -1,236 +1,296 @@
-# exo 1.x版本字体
-# Saira 2.x版本字体
+try:
+    from PIL import Image, ImageFilter, ImageEnhance
+    import core as cor
+    import pygame
+    import sys
+    import time
+    import data
+    import element
+    import tinytag
+    import pygame.freetype
+    import welcome as w
+    import logging
+    logging.basicConfig(filename='log.txt', level=logging.DEBUG,format='%(asctime)s %(filename)s[line:%(lineno)d]%(levelname)s %(message)s')
+except ImportError or ModuleNotFoundError:
+    from tkinter.messagebox import *
+    import logging
+    showerror('库缺失', '您运行的程序未找到库，请检查是否安装库以及python版本是否为3.10。')
 
-
-
-import sys
-# import cv2
-import time
-from tkinter.messagebox import showerror
-import pygame
-import pygame.freetype
-from pydub import *
-import ast
-
-import easing                       # 缓动函数
-import element
-import core
-import readfile                     # 读取文件
-import welcome as w                 # 欢迎界面
-import easing                       # 缓动函数
-import helper                       # def函数封装
-import readchart                    # 读取谱面
-from tkinter import *
-
-
-
-
-
-# --------------------------------------------
-WINDOW_X = 1920 / 2
-WINDOW_Y = 1080 / 2
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-FPS = 60
-combo = 0
-maxcombo = 0
-data = []  # 初始化铺面数据
-clock = pygame.time.Clock()
-all_sprites = pygame.sprite.Group()
-nummark = "0000000"
-# --------------------------------------------
-#w.welcome()  # 欢迎界面
-gamename = w.choose()  # 选择界面
-w.loading()
-info_data = readfile.lookfile(gamename)
-# --------------------------------------------
-
-# 使用pygame之前必须初始化
-#pygame.mixer.pre_init(44100, -16, 1, 512)
-pygame.mixer.init()
 pygame.init()
+gamename = w.choose()#选择界面
+data.load_zip("preset/{}.zip".format(gamename))
+w.loading()# 加载界面
 
-# clock = pygame.time.Clock()
+# ---------- PYGAME INIT ----------
+# 初始化音频
+pygame.mixer.init()
+pygame.mixer.music.load(cor.SONG)
+pygame.freetype.init()
+pygame.font.init()
 
-screen = pygame.display.set_mode((WINDOW_X, WINDOW_Y))  # 设置主屏窗口
-screen.fill((30, 30, 30))  # 填充主窗口的背景颜色，参数值RGB（颜色元组）
-keep_going = True  # 循环标志
-pygame.display.set_caption('Phigros for Python')  # 设置窗口标题
-# -----------------------------------------------
-
-
-try:  # 检测父文件
-    judgeLine = pygame.image.load("src/JudgeLine.png").convert_alpha()  # 判定线
-    progressBar = pygame.image.load("src/ProgressBar.png").convert_alpha()  # 进度条
-    songsNameBar = pygame.image.load("src/SongsNameBar.png").convert_alpha()  # 歌曲名条
-    pause = pygame.image.load("src/Pause.png").convert_alpha()  # 暂停
-    clickRaw = pygame.image.load("src/clickRaw.png").convert_alpha()  # 点击特效
-    tap = pygame.image.load("src/Tap.png").convert_alpha()  # Tap
-    tap2 = pygame.image.load("src/Tap2.png").convert_alpha()  # Tap-BAD
-    tapHL = pygame.image.load("src/TapHL.png").convert_alpha()  # Tap高亮
-    drag = pygame.image.load("src/Drag.png").convert_alpha()  # Drag
-    dragHL = pygame.image.load("src/DragHL.png").convert_alpha()  # Drag高亮
-    holdHead = pygame.image.load("src/HoldHead.png").convert_alpha()  # Hold头部
-    holdHeadHL = pygame.image.load("src/HoldHeadHL.png").convert_alpha()  # Hold头部高亮
-    hold = pygame.image.load("src/Hold.png").convert_alpha()  # Hold身子
-    holdHL = pygame.image.load("src/HoldHL.png").convert_alpha()  # Hold身子高亮
-    holdEnd = pygame.image.load("src/HoldEnd.png").convert_alpha()  # Hold尾部
-    flick = pygame.image.load("src/Flick.png").convert_alpha()  # Flick
-    flickHL = pygame.image.load("src/FlickHL.png").convert_alpha()  # Flick高亮
-    pic_LevelOver1 = pygame.image.load("src/LevelOver1.png").convert_alpha()  # LevelOver1中间成果条
-    pic_LevelOver3 = pygame.image.load("src/LevelOver3.png").convert_alpha()  # LevelOver3等级背景
-    pic_LevelOver4 = pygame.image.load("src/LevelOver4.png").convert_alpha()  # LevelOver4名字背景
-    pic_LevelOver5 = pygame.image.load( "src/LevelOver5.png").convert_alpha()  # LevelOver5名字左竖
-    rank = pygame.image.load("src/Rank.png").convert_alpha()  # 等级图片
-    continueButton = pygame.image.load("src/continue.png").convert_alpha()  # 继续
-    restartButton = pygame.image.load("src/restart.png").convert_alpha()  # 重启
-    stopButton = pygame.image.load("src/stop.png").convert_alpha()  # 退出
-    # -------------------------------------------------------------------------------------
-    mute = pygame.mixer.Sound("src/mute.ogg")
-    hitSong0 = pygame.mixer.Sound("src/HitSong0.ogg")  # 打击音效1-Tap
-    hitSong1 = pygame.mixer.Sound("src/HitSong1.ogg")  # 打击音效2-Drag
-    hitSong2 = pygame.mixer.Sound("src/HitSong2.ogg")  # 打击音效3-Flick
-    music_LevelOver = pygame.mixer.Sound("src/LevelOver3_v2.ogg")  # 结束音效
-except FileNotFoundError:
-    showerror('读取出错：未发现父文件')
-
-# background_image = cv2.GaussianBlur(src, (15, 15), 0)
-# im = Image.open(info_data["picture"]).point(lambda p = p * 0.5)
-image_surface = pygame.image.load(info_data["picture"]).convert()  # 加载背景
-image_surface.scroll(0, 0)
-image_surface = pygame.transform.scale(image_surface, (WINDOW_X, WINDOW_Y))
 # 初始化图像
+pil_blurred = Image.open(cor.IMAGE).filter(ImageFilter.GaussianBlur(radius=15))
+brightEnhancer = ImageEnhance.Brightness(pil_blurred)
+img = brightEnhancer.enhance(0.5)
+img.convert("RGB").save("./cache/bg_b_b.jpg", quality=75)
+# convert it back to a pygame surface
+background = pygame.transform.smoothscale(pygame.image.load("./cache/bg_b_b.jpg"),(cor.WIDTH, cor.HEIGHT))
+
+try:
+    # 初始化字体
+    f1      = pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf", 12)
+    f2      = pygame.freetype.Font(r"resources/Saira-Medium.ttf", 15)
+    font1   = pygame.font.Font(r"resources/Exo-Regular.pfb.ttf", 14)
+    font2   = pygame.font.Font(r"resources/Saira-Medium.ttf", 30)
+    font40  = pygame.font.Font("resources/cmdysj.ttf", 40)
+    font30  = pygame.font.Font("resources/cmdysj.ttf", 30)
+    font25  = pygame.font.Font("resources/cmdysj.ttf", 25)
+    font20  = pygame.font.Font("resources/cmdysj.ttf", 20)
+except FileNotFoundError:
+    from tkinter.messagebox import *
+    import logging
+    showerror('文件缺失', '您运行的程序未找到文件，请检查程序是否完整。')
+
+# 初始化界面
+screen = pygame.display.set_mode((cor.WIDTH, cor.HEIGHT), vsync=True)
+surface = pygame.Surface((cor.WIDTH, cor.HEIGHT), pygame.SRCALPHA)
+pygame.display.set_caption("Phigros for Python Max")
+
+# 初始化时钟
+clock = pygame.time.Clock()
+
+# ---------- PYGAME INIT ----------
+try:
+    songsNameBar = pygame.image.load("resources/texture/SongsNameBar.png").convert_alpha()  # 歌曲名条
+    pause = pygame.image.load("resources/texture/Pause.png").convert_alpha()  # 暂停
+except FileNotFoundError:
+    from tkinter.messagebox import *
+    import logging
+    showerror('文件缺失', '您运行的程序未找到文件，请检查程序是否完整。')
+# ---------- GAME INIT ----------
+fps = 180
+skip = 0
+beat = cor.BeatObject.get_value(skip/60)
+cor.OFFSET -= 175
+note_num = 0
+duration = tinytag.TinyTag.get(cor.SONG).duration
+
+elementPainter = element.ElementPainter()
+evalPainter = element.EvalPainter()
+
+if cor.NOTE_NUM == 0:
+    cor.NOTE_NUM = 1
+    note_num = 1
 
 
-pygame.mixer.music.load(info_data["music"])  # 加载歌曲
-songlength = helper.get_voice_time_secs(info_data["music"])
-# songlength=1
-# pygame.mixer.music.play() # 播放
+for jl in cor.judge_line_list:
+    note_bin = []
+    for note in jl.not_holds:
+        if note.at < beat:
+            note_bin.append(note)
+        else:
+            break
+    for note in note_bin:
+        jl.not_holds.remove(note)
+        if note in jl.above1:
+            jl.above1.remove(note)
+        else:
+            jl.above2.remove(note)
+        if not note.fake:
+            note_num += 1
 
-datanum = 0
-with open(info_data["chart"]) as f:  # 读取铺面
-    line = f.readlines()
-    data.append(line)
-# if info_data['音乐'][-4:] == 'ogg':#检测音乐格式
-#    print('读取音乐文件格式正确!')
-# else:
-#    print('读取出错：发现音乐类型非.ogg')
-data = ast.literal_eval(data)
-# -----------------------------------------------
-blackpic = pygame.image.load("src/black.png").convert()
-blackpic.set_alpha(1)
-def darken_screen(qwok):
-    '''
-    设置背景暗度
-    '''
-    blackpic.set_alpha(qwok)
-def trans_music(name, filepath, hz):
-    song = AudioSegment.from_mp3(filepath)
-    song.export(name+str(hz), format=str(hz))
-# 鼠标类
-class Mouse(pygame.sprite.Sprite):
-    def __init__(self):
-        self.image = pygame.Surface((2, 2))
-        self.image.fill('#D655C7')
-        self.rect = self.image.get_rect()
-        self.rect.center = pygame.mouse.get_pos()  # 初始位置到鼠标指针
+    note_bin = []
+    for note in jl.holds:
+        if note.end < beat:
+            note_bin.append(note)
+        if note.at <= beat and (time.time() - note.last_eval_time >= 0.2):
+            note.last_eval_time = time.time()
 
-    def update(self):
-        self.rect.center = pygame.mouse.get_pos()  # 移到鼠标指针位置
-        screen.blit(self.image, self.rect)
-# 创建鼠标精灵
-mouse = Mouse()
-# -----------------------------------------------
-# darken_screen()
-if pygame.mixer.music.get_busy() == False:  # 播放BGM
-    pygame.mixer.music.load(info_data["music"])
-    pygame.mixer.music.play()
-# 引入字体类型
-f1 = pygame.freetype.Font(r"src/Exo-Regular.pfb.ttf", 12)
-f2 = pygame.freetype.Font(r"src/Saira-Medium.ttf", 12)
-font_title = pygame.freetype.Font(r"src/Saira-Medium.ttf", 14)
-# f1rect=f1.render_to(screen,[30,500],info_data["名称"],fgcolor=(255,255,255),size=25)
+    for note in note_bin:
+        jl.holds.remove(note)
+        if note in jl.above1:
+            jl.above1.remove(note)
+        else:
+            jl.above2.remove(note)
+        if not note.fake:
+            note_num += 1
 
-# -----------------------------------------------
-
+# ---------- GAME INIT ----------
 songsNameBar = pygame.transform.scale(songsNameBar, (4, 21))  # 歌曲名条调整大小
-progressBar = pygame.transform.scale(
-    progressBar, (WINDOW_X + 5, 5))  # 进度条儿调整大小
 pause = pygame.transform.scale(pause, (20, 20))  # 暂停按钮调整大小
-blackpic = pygame.transform.scale(blackpic, (WINDOW_X, WINDOW_Y))
-judgeLine = pygame.transform.scale(judgeLine, (WINDOW_Y * 2.5, 5))
+# ---------- GAME START ----------
 
-progressX = -WINDOW_X + 10  # 进度条X坐标(定位坐标在图像左上角，完成则为x0)(加载出图像需要时间)
-progressMoveX = songlength / WINDOW_X  # 进度条移动速度
-# print(info_data,'\n',data)
-continueButton.set_alpha(100)
-restartButton.set_alpha(100)
-stopButton.set_alpha(100)
-# -----------------------------------------------
-#readchart.int(gamename)
-# -----------------------------------------------
-
-# 如果没有下列主循环代码，运行结果会一闪而过
-darken_screen(150)
-time_begin = int(time.time())
-songlengthstr = time.strftime("%M:%S", time.localtime(songlength))
-#raise(BaseException,'没有错的报错')
-while 1:
-    now = int(time.time())
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            # 卸载所有模块
-            pygame.quit()
-            # 终止程序
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONUP:
-            pos = pygame.mouse.get_pos()
-            if event.button == 1:
-                if 20 <= pos[0] <= 20 + 20 and 21 <= event.pos[1] <= 21 + 20:
-                    exitnow = int(time.time())
-                    if 20 <= pos[0] <= 20 + 20 and 21 <= event.pos[1] <= 21 + 20 and int(time.time()) - exitnow <= 1:
+pygame.mixer.music.play(start=skip)
+start = time.time()
+beat = cor.BeatObject.get_value((time.time()-start+skip-cor.OFFSET/1000)/60)
+try:
+    while 1:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit(0)
+            elif event.type == pygame.KEYDOWN:
+                #print(cor.DEBUG_K, cor.DEBUG_N)
+                if event.scancode == 82:
+                    cor.DEBUG_K += 0.05
+                elif event.scancode == 81:
+                    cor.DEBUG_K -= 0.05
+                elif event.scancode == 79:
+                    cor.DEBUG_N += 0.05
+                elif event.scancode == 80:
+                    cor.DEBUG_N -= 0.05
+            if event.type == pygame.MOUSEBUTTONUP:
+                pos = pygame.mouse.get_pos()
+                if event.button == 1:
+                    if 19 <= pos[0] <= 19 + 20 and 20 <= event.pos[1] <= 20 + 20:
                         sys.exit()
+        # ---------- EVENT RESPOND ----------
 
-    if pygame.mixer.music.get_busy():  # 播放BGM
-        # 获取当前播放的时间
-        current = pygame.mixer.music.get_pos() / 1000  # 毫秒
-        current %= songlength  # 如果循环播放，需要处理
-        rate = current / songlength
-        # 进度条X坐标(定位坐标在图像左上角，完成则为x0)(加载出图像需要时间)
-        ProgressX = -WINDOW_X - 5 + int(rate * WINDOW_X)
-        less = now - time_begin
-    else:
-        less = str(less)
-        less = songlengthstr
+        # ---------- ESSENTIAL ----------
 
-    # 更新屏幕内容
-    
-    screen.blit(image_surface, (0, 0))  # 背景
-    screen.blit(blackpic, (0, 0))  # 黑色掩盖
-    screen.blit(pause, (20, 21))  # 暂停按钮
-    screen.blit(songsNameBar, (20, 500))  # 歌曲名条
-    screen.blit(progressBar, (progressX, 0))  # 进度条儿
-    # screen.bilt(ContinueButton,(WINDOW_X/3-12,WINDOW_Y/4))                                      #继续
-    # screen.bilt(RestartButton,(WINDOW_X/3*2-12*2,WINDOW_Y/4*2))                                 #重启
-    # screen.bilt(StopButton,(WINDOW_X/2*3-12*3,WINDOW_Y/4*3))                                    #退出
-    SongsName = f2.render_to(screen, [30, 503], info_data['other'][0], 
-                            fgcolor=(255, 255, 255), size=21)  # 歌曲名
-    SongsLevel = f1.render_to(screen, [865, 507], info_data['other'][1], 
-                            fgcolor=(255, 255, 255), size=18)  # 歌曲等级
-    mark = f1.render_to(screen, [809, 25], 
-                        str(nummark), fgcolor=(255, 255, 255), size=28)  # 分数
-    try:
-        otime = f1.render_to(screen, [0, 5], 
-                            '{}/{}'.format(time.strftime("%M:%S",time.localtime(less)), songlengthstr),
-                            fgcolor=(255, 255, 255), size=12)
-    except TypeError:
-        otime = f1.render_to(screen, [0, 5], 
-                            '{}/{}'.format(songlengthstr, songlengthstr), 
-                            fgcolor=(255, 255, 255), size=12)
+        if beat < 0:
+            beat = cor.BeatObject.get_value((time.time() - start + skip - cor.OFFSET / 1000) / 60)
+            continue
 
-    # ----------------------------------
-    screen.blit(judgeLine, (0, WINDOW_Y / 2))
-    # ----------------------------------
+        screen.blit(background, (0, 0))
+        # screen.fill((50, 50, 50))
+        surface.fill((0, 0, 0, 0))
 
-    mouse.update()  # 更新鼠标位置
-    pygame.display.update()  # 更新屏幕
+        # 进度条
+        pygame.draw.rect(screen, (200, 200, 200),((0, 0), ((pygame.mixer.music.get_pos()/1000+skip)/duration*cor.WIDTH, 8)))
+
+        
+        # ---------- ESSENTIAL ----------
+
+        # ---------- DISPLAY ELEMENTS ----------
+
+        # for jl in core.judge_line_list:
+        #     note_bin = []
+        #     for note in jl.not_holds:
+        #         if note.at < beat:
+        #             note_bin.append(note)
+        #         else:
+        #             break
+        #     for note in note_bin:
+        #         jl.not_holds.remove(note)
+        #         if note in jl.above1:
+        #             jl.above1.remove(note)
+        #         else:
+        #             jl.above2.remove(note)
+        #         if not note.fake:
+        #             evalPainter.add_note(note, core.Eval.PERFECT)
+        #             if note.id == element.Note.TAP:
+        #                 core.TAP_SOUND.play()
+        #             elif note.id == element.Note.DRAG:
+        #                 core.DRAG_SOUND.play()
+        #             elif note.id == element.Note.FLICK:
+        #                 core.FLICK_SOUND.play()
+        #             note_num += 1
+        #
+        #     note_bin = []
+        #     for note in jl.holds:
+        #         if note.end < beat:
+        #             note_bin.append(note)
+        #
+        #         if note.at <= beat and (time.time() - note.last_eval_time >= 0.2):
+        #             if not note.fake:
+        #                 if note.last_eval_time == -1:
+        #                     core.TAP_SOUND.play()
+        #                 evalPainter.add_note(note, core.Eval.PERFECT)
+        #             note.last_eval_time = time.time()
+        #
+        #     for note in note_bin:
+        #         jl.holds.remove(note)
+        #         if note in jl.above1:
+        #             jl.above1.remove(note)
+        #         else:
+        #             jl.above2.remove(note)
+        #         if not note.fake:
+        #             note_num += 1
+
+        for jl in cor.judge_line_list:
+            jl.blit(surface, beat)
+
+            note_bin = []
+            for note in jl.not_holds:
+                if note.at < beat:
+                    note_bin.append(note)
+                else:
+                    break
+            for note in note_bin:
+                jl.not_holds.remove(note)
+                if note in jl.above1:
+                    jl.above1.remove(note)
+                else:
+                    jl.above2.remove(note)
+                if not note.fake:
+                    evalPainter.add_note(note, cor.Eval.PERFECT)
+                    if cor.ENABLE_SOUND:
+                        if note.id == element.Note.TAP:
+                            cor.TAP_SOUND.play()
+                        elif note.id == element.Note.DRAG:
+                            cor.DRAG_SOUND.play()
+                        elif note.id == element.Note.FLICK:
+                            cor.FLICK_SOUND.play()
+                    note_num += 1
+
+            note_bin = []
+            for note in jl.holds:
+                if note.end < beat:
+                    note_bin.append(note)
+
+                if note.at <= beat and (time.time() - note.last_eval_time >= 0.2):
+                    if not note.fake:
+                        if note.last_eval_time == -1:
+                            if cor.ENABLE_SOUND:
+                                cor.TAP_SOUND.play()
+                        evalPainter.add_note(note, cor.Eval.PERFECT)
+                    note.last_eval_time = time.time()
+
+            for note in note_bin:
+                jl.holds.remove(note)
+                if note in jl.above1:
+                    jl.above1.remove(note)
+                else:
+                    jl.above2.remove(note)
+                if not note.fake:
+                    note_num += 1
+
+        # elementPainter.paint(surface, beat)
+
+        evalPainter.blit(surface)
+
+        # ---------- DISPLAY ELEMENTS ----------
+
+        # ---------- DISPLAY TEXTS ----------
+
+        combo_text      = font1.render("COMBO", True, (255, 255, 255))
+        combo_num_text  = font2.render(str(note_num), True, (255, 255, 255))
+        #score_text = font30.render(str(int(note_num/cor.NOTE_NUM*1000000)).rjust(7, '0'), True, (255, 255, 255))
+        #fps_text = font25.render(str(int(clock.get_fps())).rjust(3, "0"), True, (255, 255, 255))
+        #offset_text = font20.render(f"OFFSET={cor.OFFSET}", True, (255, 255, 255))
+
+        if note_num >= 3:
+            surface.blit(combo_text, (cor.WIDTH/2-font1.size("COMBO")[0]/2+2.5, 42))
+            surface.blit(combo_num_text, (cor.WIDTH/2-font25.size(str(note_num))[0]/2, 3))
+        surface.blit(pause, (20, 21))  # 暂停按钮
+        surface.blit(songsNameBar, (20, 500))  # 歌曲名条
+        SongsName       = f2.render_to(screen, [30, 503], cor.NAME, fgcolor=(255, 255, 255), size=21)  # 歌曲名
+        SongsLevel      = f1.render_to(screen, [870, 507], cor.LEVEL,fgcolor=(255, 255, 255), size=18)  # 歌曲等级
+        mark            = f1.render_to(screen, [815, 23],str(int(note_num/cor.NOTE_NUM*1000000)).rjust(7, "0"), fgcolor=(255, 255, 255), size=28)  # 分数
+        fps_text        = f1.render_to(screen, [0, 8],str(int(clock.get_fps())).rjust(3, "0"), fgcolor=(255, 255, 255), size=12)
+
+        # ---------- DISPLAY TEXTS ----------
+
+        # ---------- REFRESH ----------
+
+        screen.blit(surface, (0, 0))
+        pygame.display.flip()
+        clock.tick(fps)
+        beat = cor.BeatObject.get_value((pygame.mixer.music.get_pos()/1000+skip-cor.OFFSET/1000)/60)
+
+        # ---------- REFRESH ----------
+except BaseException:
+    from tkinter.messagebox import *
+    import logging
+    showerror('程序错误', '您运行的程序运行过程中发生了错误，请检查程序是否经过修改、删减、改名等操作。并检查您的pygame是否为最新版本与python是否为3.10。')

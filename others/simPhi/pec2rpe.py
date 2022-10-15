@@ -1,15 +1,10 @@
-"""
-author: xi2p
-Inspired from https://github.com/Anslate/Phi_Chart_Transform
-"""
-
 import json
 import math
 import sys
 
 
 def to_rpe_note_x(n):
-    return n * 0.9 * 0.7 * 0.9 * 1.2 * 0.95
+    return n * 0.9 * 0.7 * 0.9
 
 
 def to_float_time(n: list):
@@ -27,7 +22,7 @@ def to_rpe_line_y(n):
 
 
 def to_rpe_line_speed(n):
-    return n / (77 / 6) * 6.5 * 0.7 * 35 / 25
+    return n / (77 / 6) * 6.5 * 0.7
 
 
 def to_rpe_time(n):
@@ -304,7 +299,10 @@ def convert(pec_path, rpe_path):
             note_list[int(blocks[1])][-1]["size"] = \
                 float(pec_file.readline().strip().split(" ")[-1])
             rpe_chart["judgeLineList"][int(blocks[1])]["numOfNotes"] += 1
-
+        elif blocks[0]=="#":
+            note_list[int(blocks[1])]["speed"]=float(blocks[1])
+        elif blocks[0]=="&":
+            note_list[int(blocks[1])][-1]["size"] =float(blocks[1])
 
         line = pec_file.readline()
 

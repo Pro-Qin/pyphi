@@ -1,6 +1,6 @@
-import core
+import core as cor
 import easing
-
+import math
 
 def list2beat(_list):
     return _list[0] + _list[1] / _list[2]
@@ -8,7 +8,7 @@ def list2beat(_list):
 
 class LineXObject:
     def __init__(self, events_json):
-        scale = core.LINE_X_SCALE
+        scale = cor.LINE_X_SCALE
         self.value = 0
 
         # 事件列表，存储了self.value的变化事件
@@ -19,8 +19,8 @@ class LineXObject:
                 easing.code2FuncDict[event["easingType"]](
                     list2beat(event["startTime"]),
                     list2beat(event["endTime"]),
-                    event["start"] * scale + core.WIDTH / 2,
-                    event["end"] * scale + core.WIDTH / 2,
+                    event["start"] * scale + cor.WIDTH / 2,
+                    event["end"] * scale + cor.WIDTH / 2,
                 )
             )
 
@@ -48,8 +48,8 @@ class LineXObject:
 
         # 那些瞬时event的遗言已经发表过了，现在安心垃圾回收
         while self.events and self.events[0].end_beat < beat:
-            # 这个event已经结su嘞！
-            self.events.pop(0)  # 小垃圾再见
+            # event结束
+            self.events.pop(0)  # 垃圾删掉
 
         return self.value
 
@@ -103,7 +103,7 @@ class AlphaObject:
 
 class LineYObject:
     def __init__(self, events_json):
-        scale = core.LINE_Y_SCALE
+        scale = cor.LINE_Y_SCALE
         self.value = 0
 
         # 事件列表，存储了self.value的变化事件
@@ -114,8 +114,8 @@ class LineYObject:
                 easing.code2FuncDict[event["easingType"]](
                     list2beat(event["startTime"]),
                     list2beat(event["endTime"]),
-                    event["start"] * scale + core.HEIGHT / 2,
-                    event["end"] * scale + core.HEIGHT / 2,
+                    event["start"] * scale + cor.HEIGHT / 2,
+                    event["end"] * scale + cor.HEIGHT / 2,
                 )
             )
 
@@ -256,7 +256,7 @@ class BeatObject:
 
         self.events.append(
             easing.code2FuncDict[1](
-                0, core.DURATION, 0, core.DURATION*events_json[0]["bpm"]
+                0, cor.DURATION, 0, cor.DURATION*events_json[0]["bpm"]
             )
         )
 
@@ -286,7 +286,7 @@ class BeatObject:
 
 class NoteYObject:
     def __init__(self, events_json):
-        scale = core.SPEED_SCALE
+        scale = cor.SPEED_SCALE
         self.value = 0
 
         # 事件列表，存储了self.value的变化事件
@@ -311,9 +311,9 @@ class NoteYObject:
         self.events.append(
             easing.code2FuncDict[1](
                 list2beat(events_json[-1]["startTime"]),
-                core.DURATION,
+                cor.DURATION,
                 tmp_value,
-                tmp_value + (core.DURATION - list2beat(events_json[-1]["startTime"])) * events_json[-1]["start"] * scale
+                tmp_value + (cor.DURATION - list2beat(events_json[-1]["startTime"])) * events_json[-1]["start"] * scale
             )
         )
 
@@ -343,3 +343,23 @@ class NoteYObject:
 
     def get_value(self, at, end):
         return self._get_value(end) - self._get_value(at)
+def bpmList(bpml):
+    beats=list(list2beat(i["startTime"]) for i in bpml)
+    bpms=list(i["bpm"] for i in bpml)
+    return dict(zip(beats,bpms))
+def b2s(beat):
+    t=beat
+    bpml=cor.BPMLIST
+    beats=list(bpml.keys())
+    bpss=list(map(lambda x:x/60,bpml.values()))
+    spaces=list(beats[i+1]-beats[i] for i in range(len(beats)-1))+[math.inf]
+    s=0
+    for i,j in zip(bpss,spaces):
+        if t>j:
+            s+=j/i
+            t-=j
+        else:
+            s+=t/i
+            return s
+        
+    

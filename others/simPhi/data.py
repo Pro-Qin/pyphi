@@ -1,7 +1,8 @@
 import csv
 import json.decoder
 import shutil
-import core
+
+import core as cor
 import alterobj
 import element
 import os
@@ -27,39 +28,33 @@ def load_rpe(rpe_path):
     note_num = 0
 
     # 加载基本信息
-    core.DURATION = 999
-    core.NAME = chart_json["META"]["name"]
-    core.ARTIST = chart_json["META"]["composer"]
-    core.CHART = chart_json["META"]["charter"]
-    core.LEVEL = chart_json["META"]["level"]
-    core.IMAGE = chart_json["META"]["background"]
-    core.SONG = chart_json["META"]["song"]
-    core.OFFSET = chart_json["META"]["offset"]
-
+    cor.DURATION = 999
+    cor.NAME = chart_json["META"]["name"]
+    cor.ARTIST = chart_json["META"]["composer"]
+    cor.CHART = chart_json["META"]["charter"]
+    cor.LEVEL = chart_json["META"]["level"]
+    cor.IMAGE = chart_json["META"]["background"]
+    cor.SONG = chart_json["META"]["song"]
+    cor.OFFSET = chart_json["META"]["offset"]
+    cor.BPMLIST=alterobj.bpmList(chart_json["BPMList"])
     # 加载 秒拍转换
-    core.BeatObject = alterobj.BeatObject(
+    cor.BeatObject = alterobj.BeatObject(
         chart_json["BPMList"]
     )
 
-    type2note = {2: element.Hold, 1: element.Tap,
-                 3: element.Flick, 4: element.Drag}
-    x_scale = core.NOTE_X_SCALE
+    type2note = {2: element.Hold, 1: element.Tap, 3: element.Flick, 4: element.Drag}
+    x_scale = cor.NOTE_X_SCALE
     index = 0
     for judgeline_data in chart_json["judgeLineList"]:
         judge_line = element.JudgeLine()
         judge_line.id = index
 
-        judge_line.x_object = alterobj.LineXObject(
-            judgeline_data["eventLayers"][0]["moveXEvents"])
-        judge_line.y_object = alterobj.LineYObject(
-            judgeline_data["eventLayers"][0]["moveYEvents"])
-        judge_line.angle_object = alterobj.AngleObject(
-            judgeline_data['eventLayers'][0]['rotateEvents'])
-        # judge_line.speed_object = alterobj.LineSpeedObject(judgeline_data['eventLayers'][0]['speedEvents'])
-        judge_line.alpha_object = alterobj.AlphaObject(
-            judgeline_data['eventLayers'][0]['alphaEvents'])
-        judge_line.note_y_object = alterobj.NoteYObject(
-            judgeline_data['eventLayers'][0]['speedEvents'])
+        judge_line.x_object = alterobj.LineXObject(judgeline_data["eventLayers"][0]["moveXEvents"])
+        judge_line.y_object = alterobj.LineYObject(judgeline_data["eventLayers"][0]["moveYEvents"])
+        judge_line.angle_object = alterobj.AngleObject(judgeline_data['eventLayers'][0]['rotateEvents'])
+        judge_line.speed_object = alterobj.LineSpeedObject(judgeline_data['eventLayers'][0]['speedEvents'])
+        judge_line.alpha_object = alterobj.AlphaObject(judgeline_data['eventLayers'][0]['alphaEvents'])
+        judge_line.note_y_object = alterobj.NoteYObject(judgeline_data['eventLayers'][0]['speedEvents'])
         if judgeline_data.get("notes", False):
             for note_data in judgeline_data["notes"]:
                 if not note_data["isFake"]:
@@ -72,7 +67,8 @@ def load_rpe(rpe_path):
                     True if note_data["above"] == 1 else False,
                     note_data["alpha"],
                     list2beat(note_data["endTime"]),
-                    True if note_data["isFake"] else False
+                    True if note_data["isFake"] else False,
+                    note_data["speed"]
                 )
                 if note_data["type"] == 2:
                     if note_data["startTime"] == note_data["endTime"]:
@@ -82,8 +78,7 @@ def load_rpe(rpe_path):
                         )
                 judge_line.notes.append(note)
 
-            judge_line.notes.sort(
-                key=lambda _note: [_note.at, _note.id != element.Note.HOLD])
+            judge_line.notes.sort(key=lambda _note: [_note.at, _note.id != element.Note.HOLD])
 
             for note in judge_line.notes:
                 if note.id == element.Note.HOLD:
@@ -97,14 +92,14 @@ def load_rpe(rpe_path):
                 else:
                     judge_line.above2.append(note)
 
-        core.judge_line_list.append(judge_line)
+        cor.judge_line_list.append(judge_line)
         index += 1
 
-    core.NOTE_NUM = note_num
+    cor.NOTE_NUM = note_num
 
     # 设置 highlight 属性
     notes = []
-    for judge_line in core.judge_line_list:
+    for judge_line in cor.judge_line_list:
         notes += judge_line.notes
 
     notes.sort(key=lambda x: x.at)
@@ -113,8 +108,7 @@ def load_rpe(rpe_path):
     temp_notes = []
 
     for note in notes:
-        if note.fake:
-            note.highlight = True
+        
         if note.at == temp_time:
             temp_notes.append(note)
         else:
@@ -148,8 +142,7 @@ def load_dir(dir_path):
     with zipfile.ZipFile("./cache/temp.zip", 'w', zipfile.ZIP_STORED) as temp_zip:
         files = os.listdir(dir_path)
         for file in files:
-            temp_zip.write(
-                dir_path + ("" if dir_path[-1] in ['\\', '/'] else "/") + file, arcname=file)
+            temp_zip.write(dir_path + ("" if dir_path[-1] in ['\\', '/'] else "/") + file, arcname=file)
 
     load_zip("./cache/temp.zip")
 
@@ -165,13 +158,13 @@ def load_zip(zip_dir):
     md5 = file_md5.hexdigest()
     print(md5)
 
-    if os.path.exists(f"./cache/{md5}") and not core.NO_CACHE:
+    if os.path.exists(f"./cache/{md5}") and not cor.NO_CACHE:
         print("cache found")
         print("loading cache ...    ", end='')
         load_rpe(f"./cache/{md5}/chart.json")
 
-        core.SONG = f"./cache/{md5}/{core.SONG}"
-        core.IMAGE = f"./cache/{md5}/{core.IMAGE}"
+        cor.SONG = f"./cache/{md5}/{cor.SONG}"
+        cor.IMAGE = f"./cache/{md5}/{cor.IMAGE}"
         print("done")
 
         return 0
@@ -346,8 +339,8 @@ def load_zip(zip_dir):
                     "Unsupported chart format."
                 )
 
-        core.SONG = f"./cache/{md5}/{song}"
-        core.IMAGE = f"./cache/{md5}/{picture}"
+        cor.SONG = f"./cache/{md5}/{song}"
+        cor.IMAGE = f"./cache/{md5}/{picture}"
         print("done")
         return 0
 
@@ -355,12 +348,6 @@ def load_zip(zip_dir):
         shutil.rmtree(f"./cache/{md5}")
         raise e
 
-
-def load_beatmap(path):
-    if os.path.isdir(path):
-        load_dir(path)
-    else:
-        load_zip(path)
 
 # todo: 支持官铺
 # def load_json(json_path):
@@ -372,7 +359,6 @@ def load_beatmap(path):
 #     json2rpe.convert(json_path, f"./cache/cache_{_id}.json")
 #     load_rpe(f"./cache/cache_{_id}.json")
 
-
 if __name__ == '__main__':
     # load_dir("resources/56769032")
-    pec2rpe.convert("others/simPhi/resources/56769032/56769032.json", "dfksj")
+    pec2rpe.convert("./resources/56769032/56769032.json", "dfksj")

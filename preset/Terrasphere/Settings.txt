@@ -1,8 +1,0 @@
-#
-Name: Terrasphere || Charter : HangHang (feat.InterJoke)
-Song: Terrasphere.mp3
-Picture: Terrasphere.jpg
-Chart: Terrasphere.pec
-Level: AT Lv.15
-Composer: Plum
-Charter: HangHang

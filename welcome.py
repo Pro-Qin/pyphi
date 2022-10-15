@@ -52,21 +52,21 @@ def choose():
     keep_going = True                                           #循环标志
     pygame.display.set_caption('Phigros for Python铺面选择')            #设置窗口标题
 
-    font_EN=pygame.freetype.Font(r"src/Saira-Medium.ttf",18*1.3)#设置字体
+    font_EN=pygame.freetype.Font(r"resources/Saira-Medium.ttf",18*1.3)#设置字体
     #背景图片
-    image_surface = pygame.image.load('welcome_src/background.png').convert()      #加载背景
+    image_surface = pygame.image.load('resources/texture/background.png').convert()      #加载背景
     image_surface.scroll(0,0)
     image_surface = pygame.transform.scale(image_surface, (window_x,window_y))
 
     #歌曲列表
-    song_list = ['Terrasphere','volcanic']
+    song_list = ['We Are Hardcore','Terrasphere']
     #加载歌曲背景
-    songpic = pygame.image.load('welcome_src/song.png').convert_alpha()
+    songpic = pygame.image.load('resources/texture/song.png').convert_alpha()
     songpic = pygame.transform.scale(songpic,(854/4*1.5,183/4*1.5))          #调整大小 
 
-    songstart = pygame.image.load('welcome_src/start.png').convert_alpha()
+    songstart = pygame.image.load('resources/texture/start.png').convert_alpha()
     songstart = pygame.transform.scale(songstart,(71/4*1.5,80/4*1.5))          #调整大小
-    pygame.mixer.music.load('welcome_src/music.mp3')#背景音乐
+    pygame.mixer.music.load('resources/audio/music.mp3')#背景音乐
     pygame.mixer.music.play(-1)#循环播放
 
     
@@ -106,15 +106,15 @@ def choose():
                     if event.pos[0]>=button_x                      and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y and event.pos[1]<=button_y+button_height:
                         #判断鼠标点击位置是否在选歌按钮1上
                         #print('用户选择:',song_list[0])
-                        return song_list[0]
+                        return song_list[0].replace(" ","")
                     elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y+spp and event.pos[1]<=button_y+spp+button_height:
                         #判断鼠标点击位置是否在选歌按钮2上
                         #print('用户选择:',song_list[1])
-                        return song_list[1]
+                        return song_list[1].replace(" ","")
                     elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width           and event.pos[1]>=button_y+(spp*2) and event.pos[1]<=button_y+(spp*2)+button_height:
                         #判断鼠标点击位置是否在选歌按钮3上 BUG：没有按钮3
                         #print('用户选择:',song_list[2])
-                        return song_list[2]
+                        return song_list[2].replace(" ","")
         screen.blit(image_surface, (0, 0))
         
 
@@ -142,7 +142,7 @@ def loading():
     BLACK = (0,0,0)
     FPS = 60
 
-    pygame.mixer.music.load('src/mute.ogg')#静音
+    pygame.mixer.music.load('resources/audio/mute.ogg')#静音
     pygame.mixer.music.play()
 
     screen = pygame.display.set_mode((window_x, window_y))                  #设置主屏窗口
@@ -150,17 +150,17 @@ def loading():
     keep_going = True                                                       #循环标志
     pygame.display.set_caption('Phigros for Python')                        #设置窗口标题
 
-    font_EN=pygame.freetype.Font(r"src/Saira-Medium.ttf",16)#设置字体
-    font_2=pygame.freetype.Font(r"src/Exo-Regular.pfb.ttf",15)#设置字体
-    font_pf=pygame.freetype.Font(r"src/PingFang.ttf",15)#设置字体
-    font_pfs=pygame.freetype.Font(r"src/PingFang.ttf",11)#设置字体
+    font_EN=pygame.freetype.Font(r"resources/Saira-Medium.ttf",16)#设置字体
+    font_2=pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf",15)#设置字体
+    font_pf=pygame.freetype.Font(r"resources/PingFang.ttf",15)#设置字体
+    font_pfs=pygame.freetype.Font(r"resources/PingFang.ttf",11)#设置字体
 
     #背景图片
-    image_surface = pygame.image.load('welcome_src/background.png').convert()      #加载背景
+    image_surface = pygame.image.load('resources/texture/background.png').convert()      #加载背景
     image_surface.scroll(0,0)
     image_surface = pygame.transform.scale(image_surface, (window_x,window_y))
 
-    image_b = pygame.image.load('src/b2w.png').convert_alpha()
+    image_b = pygame.image.load('resources/texture/b2w.png').convert_alpha()
     image_b = pygame.transform.scale(image_b, (window_x,window_y/4))
     #歌曲列表
     tips = [
@@ -267,6 +267,6 @@ def loading():
     
 
 if __name__ == '__main__':
-    welcome()
+    #welcome()
     choose()
     loading()
