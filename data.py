@@ -130,6 +130,7 @@ def load_rpe(rpe_path):
 #     pec2rpe.convert(pec_path, f"./cache/cache_{_id}.json")
 #     load_rpe(f"./cache/cache_{_id}.json")
 
+class ChartError:'''一个谱面错误 A Chart Error'''
 
 def load_dir(dir_path):
     if not os.path.exists("./cache/temp"):
@@ -334,9 +335,9 @@ def load_zip(zip_dir):
 
                 load_rpe(f"./cache/{md5}/chart.json")
 
-            except ValueError:
-                raise ValueError(
-                    "Unsupported chart format."
+            except ValueError or KeyError as j:
+                raise ChartError(
+                    "Unsupported chart format.\n{}".format(j)
                 )
 
         cor.SONG = f"./cache/{md5}/{song}"

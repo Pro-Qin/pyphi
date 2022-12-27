@@ -2,6 +2,11 @@ import math
 import pygame
 import typing as T
 import os
+from PIL import Image
+import os
+import cv2
+import time
+import matplotlib.pyplot as plt
 
 
 if not os.path.exists("./cache"):
@@ -9,7 +14,115 @@ if not os.path.exists("./cache"):
 
 
 pygame.init()
-pygame.mixer.init()
+# pygame.mixer.init()
+
+
+import numpy as np
+import cv2
+ 
+
+def scale_pg(fji,bili):
+    '''按比例缩放
+    :: fji = pygame.Surface
+    :: bili = int'''
+    bili = int(bili)
+    def1_output = pygame.transform.scale(fji, (fji.get_size()[0]/100*bili, fji.get_size()[1]/100*bili)) # 按比例缩放
+    return def1_output
+
+def scale_wpg(fji,width):
+    '''按目标智能缩放,要求宽度
+    :: fji = pygame.Surface
+    :: width = int'''
+    width = int(width)
+    w = fji.get_size()[0]
+    h = fji.get_size()[1]
+    sakdj = width / w * 100
+    def1_output = pygame.transform.scale(fji, (fji.get_size()[0]/100*sakdj, fji.get_size()[1]/100*sakdj)) # 按比例缩放
+    return def1_output
+
+def cutimage(image:pygame.Surface,imagepath:str,size,endpath,sizeer:tuple):
+    # image = pygame.image.load(imagepath).convert_alpha()
+    # image = scale_wpg(image,417)
+    w,h = image.get_rect().size
+    ew,eh=sizeer
+    pas = ew/w*h #ew/w 求比例 *h应用在高上
+    # 读取图像
+    img = cv2.imread(imagepath)
+    # 坐标点points
+    # pts = np.array([[size,0+pas],[w,0+pas],[w-size,h-pas],[0,h-pas]])
+    pts = np.array([[size,pas],[w,pas],[w-size,h-pas],[0,h-pas]])
+    pts = np.array([pts])
+    # 和原始图像一样大小的0矩阵，作为mask
+    mask = np.zeros(img.shape[:2], np.uint8)
+    # 在mask上将多边形区域填充为白色
+    cv2.polylines(mask, pts, True, (0,0,0))    # 描绘边缘
+    cv2.fillPoly(mask, pts, 255)    # 填充
+    # 逐位与，得到裁剪后图像，此时是黑色背景
+    dst = cv2.bitwise_and(img, img, mask=mask)
+    # 添加白色背景
+    bg = np.ones_like(img, np.uint8) * 255
+    cv2.bitwise_not(bg, bg, mask=mask)  # bg的多边形区域为0，背景区域为255
+    dst_white = bg + dst
+    # cv2.imwrite("cache/Introduction_.jpg", dst)
+
+    tmp = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+    b, g, r = cv2.split(dst)
+    rgba = [b, g, r, alpha]
+    dst = cv2.merge(rgba, 4)
+
+    # 注意保存成png格式！！！jpg的话还是黑色背景(255)
+    cv2.imwrite(endpath, dst)
+
+    # endimage = pygame.image.load(endpath).convert_alpha()
+    # endimage = pygame.transform.scale(endimage, sizeer)
+    # return endimage
+
+def cutimage_rect(imagepath,size:tuple,endpath):
+    ew,eh=size
+    image = pygame.image.load(imagepath).convert_alpha()
+    image = scale_wpg(image,ew)
+    w,h = image.get_rect().size
+
+    # pas = ew/w*h #ew/w 求比例 *h应用在高上
+    # 读取图像
+    img = cv2.imread(imagepath)
+    # img.size
+    # 坐标点points
+    # pts = np.array([[size,0+pas],[w,0+pas],[w-size,h-pas],[0,h-pas]])
+    pts = np.array([[(w-ew)/2,(h-eh)/2],[(w-ew)/2,(h-eh)/2+eh],[(w-ew)/2+ew,(h-eh)/2+eh],[(w-ew)/2+ew,(h-eh)/2]])
+    pts = np.int32([pts])# pts = np.array([pts])
+    # 和原始图像一样大小的0矩阵，作为mask
+    mask = np.zeros(img.shape[:2], np.uint8)
+    # 在mask上将多边形区域填充为白色
+    cv2.polylines(mask, np.int32(pts), True, (0,0,0))    # 描绘边缘
+    cv2.fillPoly(mask, np.int32(pts), 255)    # 填充
+    # 逐位与，得到裁剪后图像，此时是黑色背景
+    dst = cv2.bitwise_and(img, img, mask=mask)
+    # 添加白色背景
+    bg = np.ones_like(img, np.uint8) * 255
+    cv2.bitwise_not(bg, bg, mask=mask)  # bg的多边形区域为0，背景区域为255
+    dst_white = bg + dst
+    # cv2.imwrite("cache/Introduction_.jpg", dst
+
+    tmp = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+    b, g, r = cv2.split(dst)
+    rgba = [b, g, r, alpha]
+    dst = cv2.merge(rgba, 4)
+
+    cv2.imwrite(endpath, dst)
+    return ((w-ew)/2,(h-eh)/2)
+
+def getnum_str(strdata):
+    a = ''
+    for i in strdata:    # 将字符串进行遍历
+        if str.isdigit(i):    # 判断i是否为数字，如果“是”返回True，“不是”返回False
+            a += i   # 如果i是数字格式，将i以字符串格式加到a上
+        else:
+            pass  # 如果i不是数字格式则省略
+    return int(a)
+
 
 
 class Eval:
@@ -96,8 +209,8 @@ DEBUG_K = 1
 DEBUG_N = 1
 
 LINE_LENGTH = 4000
-WIDTH = 1920 / 2
-HEIGHT = 1080 / 2
+WIDTH = int(1920 / 2)
+HEIGHT = int(1080 / 2)
 
 NOTE_WIDTH = 100
 NOTE_HEIGHT = 12
@@ -105,6 +218,10 @@ NOTE_R = (NOTE_HEIGHT ** 2 + NOTE_WIDTH ** 2) ** 0.5 / 2
 NOTE_THETA = math.degrees(math.atan(NOTE_HEIGHT/NOTE_WIDTH))
 
 BAR_WIDTH = 20
+
+TITLE = 'Phigros for Python Max'
+
+pygame.mixer.init()
 
 TAP_SOUND = pygame.mixer.Sound("resources/audio/tap.wav")
 DRAG_SOUND = pygame.mixer.Sound("resources/audio/drag.wav")
@@ -123,12 +240,15 @@ NAME = ''
 ARTIST = ''
 CHART = ''
 LEVEL = ''
+# global IMAGE
 IMAGE: os.PathLike
 SONG: os.PathLike
 BPMLIST: dict
 BeatObject: object  # 提供秒转拍服务
 
 OFFSET = 0
+
+ENDLIST:dict = {}
 
 judge_line_list = []
 

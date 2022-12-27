@@ -1,25 +1,26 @@
-try:
-    from PIL import Image, ImageFilter, ImageEnhance
-    import core as cor
-    import pygame
-    import sys
-    import time
-    import data
-    import element
-    import tinytag
-    import pygame.freetype
-    import welcome as w
-    import logging
-    logging.basicConfig(filename='log.txt', level=logging.DEBUG,format='%(asctime)s %(filename)s[line:%(lineno)d]%(levelname)s %(message)s')
-except ImportError or ModuleNotFoundError:
-    from tkinter.messagebox import *
-    import logging
-    showerror('库缺失', '您运行的程序未找到库，请检查是否安装库以及python版本是否为3.10。')
+#from logging import *
+#basicConfig(filename='# Log.txt', level=INFO,format='[%(levelname)s][%(asctime)s]:%(message)s')
+# from logi import *
+# Log = Log()
 
+from PIL import Image, ImageFilter, ImageEnhance
+import core as cor
+import pygame
+import sys
+import time
+import data
+import element
+import tinytag
+import pygame.freetype
+import welcome as w
+import random
+import shutil  
+shutil.rmtree('cache')  #清空缓存
 pygame.init()
 gamename = w.choose()#选择界面
 data.load_zip("preset/{}.zip".format(gamename))
 w.loading()# 加载界面
+# Log.info('Loading UI.')
 
 # ---------- PYGAME INIT ----------
 # 初始化音频
@@ -27,6 +28,7 @@ pygame.mixer.init()
 pygame.mixer.music.load(cor.SONG)
 pygame.freetype.init()
 pygame.font.init()
+# Log.info('Initing.')
 
 # 初始化图像
 pil_blurred = Image.open(cor.IMAGE).filter(ImageFilter.GaussianBlur(radius=15))
@@ -35,7 +37,7 @@ img = brightEnhancer.enhance(0.5)
 img.convert("RGB").save("./cache/bg_b_b.jpg", quality=75)
 # convert it back to a pygame surface
 background = pygame.transform.smoothscale(pygame.image.load("./cache/bg_b_b.jpg"),(cor.WIDTH, cor.HEIGHT))
-
+# Log.info('Image Init.')
 try:
     # 初始化字体
     f1      = pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf", 12)
@@ -46,15 +48,16 @@ try:
     font30  = pygame.font.Font("resources/cmdysj.ttf", 30)
     font25  = pygame.font.Font("resources/cmdysj.ttf", 25)
     font20  = pygame.font.Font("resources/cmdysj.ttf", 20)
+    # Log.info('Loading fonts.')
 except FileNotFoundError:
-    from tkinter.messagebox import *
-    import logging
-    showerror('文件缺失', '您运行的程序未找到文件，请检查程序是否完整。')
+    pass
+    # Log.error('文件缺失', '您运行的程序未找到字体文件，请检查程序是否完整。','The program you are running cannot find the font file.')
 
 # 初始化界面
 screen = pygame.display.set_mode((cor.WIDTH, cor.HEIGHT), vsync=True)
 surface = pygame.Surface((cor.WIDTH, cor.HEIGHT), pygame.SRCALPHA)
-pygame.display.set_caption("Phigros for Python Max")
+pygame.display.set_caption(cor.TITLE)
+# Log.info('Loading window.')
 
 # 初始化时钟
 clock = pygame.time.Clock()
@@ -64,9 +67,8 @@ try:
     songsNameBar = pygame.image.load("resources/texture/SongsNameBar.png").convert_alpha()  # 歌曲名条
     pause = pygame.image.load("resources/texture/Pause.png").convert_alpha()  # 暂停
 except FileNotFoundError:
-    from tkinter.messagebox import *
-    import logging
-    showerror('文件缺失', '您运行的程序未找到文件，请检查程序是否完整。')
+    pass
+    # Log.error('文件缺失', '您运行的程序未找到文件，请检查程序是否完整。','The program you are running cannot find the file.')
 # ---------- GAME INIT ----------
 fps = 180
 skip = 0
@@ -74,6 +76,7 @@ beat = cor.BeatObject.get_value(skip/60)
 cor.OFFSET -= 175
 note_num = 0
 duration = tinytag.TinyTag.get(cor.SONG).duration
+# Log.info('Set vars.')
 
 elementPainter = element.ElementPainter()
 evalPainter = element.EvalPainter()
@@ -81,7 +84,7 @@ evalPainter = element.EvalPainter()
 if cor.NOTE_NUM == 0:
     cor.NOTE_NUM = 1
     note_num = 1
-
+# Log.info('Loading charts.')
 
 for jl in cor.judge_line_list:
     note_bin = []
@@ -98,6 +101,7 @@ for jl in cor.judge_line_list:
             jl.above2.remove(note)
         if not note.fake:
             note_num += 1
+            # perfect += 1
 
     note_bin = []
     for note in jl.holds:
@@ -114,15 +118,20 @@ for jl in cor.judge_line_list:
             jl.above2.remove(note)
         if not note.fake:
             note_num += 1
-
+            # perfect += 1
+# Log.info('Loading charts DONE.')
 # ---------- GAME INIT ----------
 songsNameBar = pygame.transform.scale(songsNameBar, (4, 21))  # 歌曲名条调整大小
 pause = pygame.transform.scale(pause, (20, 20))  # 暂停按钮调整大小
+# Log.info('Set pic bg DONE.')
 # ---------- GAME START ----------
 
 pygame.mixer.music.play(start=skip)
+pygame.mixer.music.set_volume(0.5)
+# pygame.mixer.music.set_endevent(gotoend)
 start = time.time()
 beat = cor.BeatObject.get_value((time.time()-start+skip-cor.OFFSET/1000)/60)
+maxcombo=0;perfect=0;good=0;bad=0;miss=0
 try:
     while 1:
         for event in pygame.event.get():
@@ -143,6 +152,7 @@ try:
                 pos = pygame.mouse.get_pos()
                 if event.button == 1:
                     if 19 <= pos[0] <= 19 + 20 and 20 <= event.pos[1] <= 20 + 20:
+                        trueend = False
                         sys.exit()
         # ---------- EVENT RESPOND ----------
 
@@ -158,6 +168,9 @@ try:
 
         # 进度条
         pygame.draw.rect(screen, (200, 200, 200),((0, 0), ((pygame.mixer.music.get_pos()/1000+skip)/duration*cor.WIDTH, 8)))
+        if pygame.mixer.music.get_busy() == False:
+            trueend = True
+            break
 
         
         # ---------- ESSENTIAL ----------
@@ -186,6 +199,7 @@ try:
         #             elif note.id == element.Note.FLICK:
         #                 core.FLICK_SOUND.play()
         #             note_num += 1
+        #             perfect += 1
         #
         #     note_bin = []
         #     for note in jl.holds:
@@ -207,6 +221,7 @@ try:
         #             jl.above2.remove(note)
         #         if not note.fake:
         #             note_num += 1
+        #             perfect += 1
 
         for jl in cor.judge_line_list:
             jl.blit(surface, beat)
@@ -233,6 +248,7 @@ try:
                         elif note.id == element.Note.FLICK:
                             cor.FLICK_SOUND.play()
                     note_num += 1
+                    perfect += 1
 
             note_bin = []
             for note in jl.holds:
@@ -255,15 +271,15 @@ try:
                     jl.above2.remove(note)
                 if not note.fake:
                     note_num += 1
+                    perfect += 1
 
         # elementPainter.paint(surface, beat)
-
         evalPainter.blit(surface)
 
         # ---------- DISPLAY ELEMENTS ----------
 
         # ---------- DISPLAY TEXTS ----------
-
+        if note_num > maxcombo:maxcombo = note_num
         combo_text      = font1.render("COMBO", True, (255, 255, 255))
         combo_num_text  = font2.render(str(note_num), True, (255, 255, 255))
         #score_text = font30.render(str(int(note_num/cor.NOTE_NUM*1000000)).rjust(7, '0'), True, (255, 255, 255))
@@ -290,7 +306,33 @@ try:
         beat = cor.BeatObject.get_value((pygame.mixer.music.get_pos()/1000+skip-cor.OFFSET/1000)/60)
 
         # ---------- REFRESH ----------
-except BaseException:
-    from tkinter.messagebox import *
-    import logging
-    showerror('程序错误', '您运行的程序运行过程中发生了错误，请检查程序是否经过修改、删减、改名等操作。并检查您的pygame是否为最新版本与python是否为3.10。')
+except BaseException as b:
+    print(b)
+    # Log.error('程序错误', '您运行的程序运行过程中发生了错误，请检查程序是否经过修改、删减、改名等操作。并检查您的pygame是否为最新版本与python是否为3.10。','Game Main Code has been error!')
+finally:
+    if trueend:
+        连击分 = maxcombo/note_num*100000
+        oncescore=1/note_num;acc_ = 0+perfect*oncescore+good*0.65*oncescore
+        rks = ((100*float(acc_)-55)/45)**2.0*float(cor.getnum_str(cor.LEVEL)) if acc_>=0.7 else 0#单曲rks算法为：若ACC<70%，则rks为0；若ACC≥70%，则rks=((100*ACC-55)/45)^2*该谱面的定数。
+        
+        cor.ENDLIST = {
+        'score':1000000,
+        'perfect':perfect,
+        'maxcombo':maxcombo,
+        'acc':1.00,
+        'good':good,
+        'bad':bad,
+        'miss':miss,
+        'early':0,
+        'late':0,
+        'level':cor.LEVEL,
+        'name':cor.NAME,
+        'username':'Guest',
+        'rks':rks,
+        }
+
+        import ending
+    else:
+        pygame.quit()
+        sys.exit()
+        

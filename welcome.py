@@ -9,7 +9,20 @@ import pygame.freetype  #文本
 import random
 import time
 import platform
+from logi import *
+import core as cor
 
+def is_chinese(string):
+    """
+    检查整个字符串是否包含中文
+    :param string: 需要检查的字符串
+    :return: bool
+    """
+    for ch in string:
+        if u'\u4e00' <= ch <= u'\u9fff':
+            return True
+
+    return False
 
 def welcome():
     '''已报废，备份'''
@@ -50,16 +63,18 @@ def choose():
     screen = pygame.display.set_mode((window_x, window_y))                #设置主屏窗口
     screen.fill((30,30,30))                                     #填充主窗口的背景颜色，参数值RGB（颜色元组）
     keep_going = True                                           #循环标志
-    pygame.display.set_caption('Phigros for Python铺面选择')            #设置窗口标题
-
+    pygame.display.set_caption(cor.TITLE)            #设置窗口标题
+    Log.info('Loading Choose UI.')
     font_EN=pygame.freetype.Font(r"resources/Saira-Medium.ttf",18*1.3)#设置字体
+    font_CN=pygame.freetype.Font(r"resources/PingFang.ttf",18*1.3)#设置字体
     #背景图片
     image_surface = pygame.image.load('resources/texture/background.png').convert()      #加载背景
     image_surface.scroll(0,0)
     image_surface = pygame.transform.scale(image_surface, (window_x,window_y))
 
     #歌曲列表
-    song_list = ['We Are Hardcore','Terrasphere']
+    song_list = ['We Are Hardcore','Terrasphere','Aphasia']
+    songlen = len(song_list)
     #加载歌曲背景
     songpic = pygame.image.load('resources/texture/song.png').convert_alpha()
     songpic = pygame.transform.scale(songpic,(854/4*1.5,183/4*1.5))          #调整大小 
@@ -67,6 +82,7 @@ def choose():
     songstart = pygame.image.load('resources/texture/start.png').convert_alpha()
     songstart = pygame.transform.scale(songstart,(71/4*1.5,80/4*1.5))          #调整大小
     pygame.mixer.music.load('resources/audio/music.mp3')#背景音乐
+    pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)#循环播放
 
     
@@ -86,13 +102,20 @@ def choose():
     mouse = Mouse()
     pygame.display.flip()#刷新屏幕
 
-    # 如果没有下列主循环代码，运行结果会一闪而过
+
+
+    #主循环
     while 1:  
         clock = pygame.time.Clock()  
         clock.tick(FPS)
-        pic_x=100-25;pic_y=100-15;button_x=100+159*1.5-4;button_y=100+2;name_x=110;name_y=110
-        spp = 120#间隔
-        pic_width=854/4*1.5;pic_height=183/4*1.5;button_width=71/4*1.5;button_height=80/4*1.5
+        pic_x=55;pic_y=45#载体
+        button_x=76+159*1.5;button_y=62#开始按钮
+        name_x=90;name_y=70#歌曲名称
+
+        button_width=71/4*1.5;button_height=80/4*1.5
+        xpp = 120#竖间隔
+        ypp = 350#竖间隔
+
 
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -106,26 +129,45 @@ def choose():
                     if event.pos[0]>=button_x                      and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y and event.pos[1]<=button_y+button_height:
                         #判断鼠标点击位置是否在选歌按钮1上
                         #print('用户选择:',song_list[0])
+                        Log.info('User Choose [0]')
                         return song_list[0].replace(" ","")
-                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y+spp and event.pos[1]<=button_y+spp+button_height:
+                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y+xpp and event.pos[1]<=button_y+xpp+button_height:
                         #判断鼠标点击位置是否在选歌按钮2上
                         #print('用户选择:',song_list[1])
+                        Log.info('User Choose [1]')
                         return song_list[1].replace(" ","")
-                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width           and event.pos[1]>=button_y+(spp*2) and event.pos[1]<=button_y+(spp*2)+button_height:
-                        #判断鼠标点击位置是否在选歌按钮3上 BUG：没有按钮3
+                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width           and event.pos[1]>=button_y+(xpp*2) and event.pos[1]<=button_y+(xpp*2)+button_height:
+                        #判断鼠标点击位置是否在选歌按钮3上
                         #print('用户选择:',song_list[2])
+                        Log.info('User Choose [2]')
                         return song_list[2].replace(" ","")
         screen.blit(image_surface, (0, 0))
         
+        u = 0
+        columns = 4
+        for i in range((songlen-1)//columns+1):#排列-列个数
+            
+            for i in range(columns):
+                if u >= songlen:#判定有没有超出list个数
+                    break#跳出这个循环力
 
-        
-        screen.blit(songpic, (pic_x,pic_y))#绘制歌曲背景
-        screen.blit(songstart, (button_x,button_y))#绘制选歌按钮
-        SongName1 = font_EN.render_to(screen,(name_x,name_y),song_list[0],WHITE)#绘制歌曲名称
+                screen.blit(songpic, (pic_x,pic_y+xpp*(i)))#绘制歌曲背景
+                screen.blit(songstart, (button_x,button_y+xpp*(i)))#绘制选歌按钮
+                if is_chinese(song_list[u]):
+                    font_CN.render_to(screen,(name_x,name_y+xpp*(i)-4),song_list[u],WHITE)#绘制歌曲名称
+                else:
+                    font_EN.render_to(screen,(name_x,name_y+xpp*(i)),song_list[u],WHITE)#绘制歌曲名称
+                u+=1
+            pic_x+=ypp;button_x+=ypp;name_x+=ypp
 
-        screen.blit(songpic, (pic_x,pic_y+120))#绘制歌曲背景
-        screen.blit(songstart, (button_x,button_y+120))#绘制选歌按钮
-        SongName2 = font_EN.render_to(screen,(name_x,name_y+120),song_list[1],WHITE)#绘制歌曲名称
+        #screen.blit(songpic, (pic_x,pic_y+xpp))#绘制歌曲背景
+        #screen.blit(songstart, (button_x,button_y+xpp))#绘制选歌按钮
+        #SongName2 = font_EN.render_to(screen,(name_x,name_y+xpp),song_list[1],WHITE)#绘制歌曲名称
+
+
+        #screen.blit(songpic, (pic_x,pic_y+xpp))#绘制歌曲背景
+        #screen.blit(songstart, (button_x,button_y+xpp))#绘制选歌按钮
+        #SongName3 = font_EN.render_to(screen,(name_x,name_y+xpp),song_list[2],WHITE)#绘制歌曲名称
 
         mouse.update()   
         pygame.display.update()#更新屏幕
@@ -148,7 +190,7 @@ def loading():
     screen = pygame.display.set_mode((window_x, window_y))                  #设置主屏窗口
     screen.fill((0,0,0))                                                    #填充主窗口的背景颜色，参数值RGB（颜色元组）
     keep_going = True                                                       #循环标志
-    pygame.display.set_caption('Phigros for Python')                        #设置窗口标题
+    pygame.display.set_caption(cor.TITLE)                        #设置窗口标题
 
     font_EN=pygame.freetype.Font(r"resources/Saira-Medium.ttf",16)#设置字体
     font_2=pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf",15)#设置字体
@@ -269,4 +311,3 @@ def loading():
 if __name__ == '__main__':
     #welcome()
     choose()
-    loading()

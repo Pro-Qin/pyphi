@@ -267,7 +267,7 @@ class Tap(Note):
         self.id = Note.TAP
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (10, 180, 240, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (0,194,255, alpha), self.highlight)
 
 
 class Drag(Note):
@@ -277,7 +277,7 @@ class Drag(Note):
         self.id = Note.DRAG
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (211, 211, 105, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (237,243,77, alpha), self.highlight)
         # Note.draw_at_(surface, x, y, angle, (240, 237, 105, alpha), self.highlight)
 
 
@@ -288,7 +288,7 @@ class Flick(Note):
         self.id = Note.FLICK
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (191, 40, 110, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (255,14,89, alpha), self.highlight)
         # Note.draw_at_(surface, x, y, angle, (254, 88, 118, alpha), self.highlight)
 
 
