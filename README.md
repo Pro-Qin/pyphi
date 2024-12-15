@@ -3,6 +3,9 @@
 #### 介绍
 这里是pyphi，诞生于Bilibili，全称为"Phigros for Python"。此项目是由Python编程语言编写的Phigros模拟器。此项目仍在开发，敬请谅解。    
 
+> [!WARNING]  
+> 该插件目前处于缓慢维护/停摆状态，短期内可能不会添加新功能以及修复bug，请联系作者QQ。
+
 #### 安装教程
 
 1.  安装pygame,PIL,zipfile,readfile,pydub,eyed3,platform,math,tinytag,Pillow库（已安装过就跳过此步）
