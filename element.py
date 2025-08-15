@@ -207,8 +207,11 @@ class Note:
         judge_line = self.judge_line
         if beat > self.at:
             beat = self.at
-        _y = (alterobj.b2s(self.at)-(judge_line.floor_position))* cor.DEBUG_N*self.speed*800
-        # _y = 0
+        # 当speed为0时，保持音符在相对于判定线锚点的固定位置
+        if self.speed == 0:
+            _y = 0  # 固定在判定线上
+        else:
+            _y = (alterobj.b2s(self.at)-(judge_line.floor_position))* cor.DEBUG_N*self.speed*800
         _x = self.x * cor.DEBUG_K
         r = (_x ** 2 + _y ** 2) ** 0.5
         if _x > 0:

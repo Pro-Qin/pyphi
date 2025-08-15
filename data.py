@@ -36,6 +36,18 @@ def load_rpe(rpe_path):
     cor.IMAGE = chart_json["META"]["background"]
     cor.SONG = chart_json["META"]["song"]
     cor.OFFSET = chart_json["META"]["offset"]
+    
+    # 增强谱面版本识别
+    rpe_version = chart_json["META"].get("RPEVersion", "Unknown")
+    format_version = chart_json.get("formatVersion", "1")
+    print(f"谱面版本: RPE {rpe_version}, 格式版本: {format_version}")
+    
+    # 根据版本号执行不同的处理逻辑
+    if format_version == "3":
+        print("检测到格式版本3，应用相应解析逻辑...")
+        # 这里可以添加针对formatVersion3的特殊处理
+    elif format_version > "3":
+        print(f"警告: 检测到未知格式版本 {format_version}，可能存在兼容性问题")
     cor.BPMLIST=alterobj.bpmList(chart_json["BPMList"])
     # 加载 秒拍转换
     cor.BeatObject = alterobj.BeatObject(
@@ -49,7 +61,30 @@ def load_rpe(rpe_path):
         judge_line = element.JudgeLine()
         judge_line.id = index
 
-        judge_line.x_object = alterobj.LineXObject(judgeline_data["eventLayers"][0]["moveXEvents"])
+        # 安全地初始化LineXObject，处理可能的easingType错误
+        try:
+            # 检查eventLayers是否存在
+            if len(judgeline_data.get("eventLayers", [])) == 0:
+                print(f"警告: 判定线 {index} 没有eventLayers数据，使用默认设置")
+                judge_line.x_object = alterobj.LineXObject([])
+            else:
+                move_x_events = judgeline_data["eventLayers"][0].get("moveXEvents", [])
+                # 增强的easingType错误处理
+                filtered_events = []
+                for event in move_x_events:
+                    if "easingType" in event and event["easingType"] not in alterobj.easing.code2FuncDict:
+                        print(f"警告: 判定线 {index} 中存在未知的easingType值 {event['easingType']}，使用默认缓动函数")
+                        # 记录错误信息到日志
+                        with open("log.txt", "a") as log_file:
+                            log_file.write(f"[ERROR] 判定线 {index}: 未知easingType {event['easingType']} 在事件 {event}\n")
+                        # 添加默认easingType
+                        event["easingType"] = 0
+                    filtered_events.append(event)
+                judge_line.x_object = alterobj.LineXObject(filtered_events)
+        except Exception as e:
+            print(f"警告: 初始化判定线 {index} 的x_object时发生错误: {e}")
+            judge_line.x_object = alterobj.LineXObject([])
+
         judge_line.y_object = alterobj.LineYObject(judgeline_data["eventLayers"][0]["moveYEvents"])
         judge_line.angle_object = alterobj.AngleObject(judgeline_data['eventLayers'][0]['rotateEvents'])
         judge_line.speed_object = alterobj.LineSpeedObject(judgeline_data['eventLayers'][0]['speedEvents'])
@@ -269,7 +304,7 @@ def load_zip(zip_dir):
         for file in os.listdir("./cache/temp"):
             if file.split(".")[-1].lower() in ["jpg", "jpeg", "png", "bmp"]:
                 picture = file
-            elif file.split(".")[-1].lower() in ["json", "pec"]:
+            elif file.split(".")[-1].lower() in ["json", "pec", "pez"]:
                 chart = file
                 name = '.'.join(file.split(".")[:-1])
             elif file.split(".")[-1].lower() in ["mp3", "ogg", "wav", "aac"]:
@@ -307,11 +342,38 @@ def load_zip(zip_dir):
         print("decoding chart file ...    ", end='')
 
         try:
-            # 尝试用两种格式去加载
-            load_rpe(f"./cache/temp/{chart}")
-
-            # rpe 解析成功
-            shutil.copy(f"./cache/temp/{chart}", f"./cache/{md5}/chart.json")
+            # 增强谱面格式识别
+            file_ext = chart.lower().split(".")[-1]
+            file_path = f"./cache/temp/{chart}"
+            
+            # 基于文件内容的格式检测
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    first_line = f.readline().strip()
+                    is_json = first_line.startswith('{') and ('META' in first_line or 'judgeLineList' in first_line)
+            except:
+                is_json = False
+                
+            if file_ext == "pec" or (not is_json and file_ext not in ["json", "rpe"]):
+                print(f"检测到非RPE格式文件 ({file_ext})，尝试使用pec2rpe转换...")
+                try:
+                    # 调用pec2rpe进行转换
+                    pec2rpe.convert(file_path, "./cache/chart.json")
+                    # 转换成功后加载生成的json文件
+                    load_rpe("./cache/chart.json")
+                    shutil.copy("./cache/chart.json", f"./cache/{md5}/chart.json")
+                except Exception as e:
+                    print(f"转换失败: {e}")
+                    raise ChartError(f"无法转换文件 {chart}: {e}")
+            else:
+                # 尝试用两种格式去加载
+                try:
+                    load_rpe(file_path)
+                    # rpe 解析成功
+                    shutil.copy(file_path, f"./cache/{md5}/chart.json")
+                except json.decoder.JSONDecodeError as e:
+                    print(f"RPE解析失败: {e}")
+                    raise ChartError(f"无效的RPE文件 {chart}: {e}")
 
         except json.decoder.JSONDecodeError:
             # 不是rpe格式

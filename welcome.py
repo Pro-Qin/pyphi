@@ -3,14 +3,123 @@
 
 
 from tkinter import *
+from tkinter import filedialog
 import pygame
 import sys
 import pygame.freetype  #文本
 import random
 import time
 import platform
+import os
+import zipfile
+import shutil
 from logi import *
 import core as cor
+
+# 创建userCharts文件夹（如果不存在）
+user_charts_dir = os.path.join(os.path.dirname(__file__), 'userCharts')
+if not os.path.exists(user_charts_dir):
+    os.makedirs(user_charts_dir)
+
+# 处理导入的文件并保存为zip
+def handle_imported_file(file_path):
+    # 获取文件名（不含扩展名）
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    zip_path = os.path.join(user_charts_dir, f'{file_name}.zip')
+
+    # 检查是否为pez文件
+    if file_path.lower().endswith('.pez'):
+        # 创建临时目录
+        temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
+
+        try:
+            # 解压pez文件
+            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # 创建新的zip文件
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                # 遍历临时目录中的所有文件
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        file_full_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_full_path, temp_dir)
+                        zip_ref.write(file_full_path, arcname)
+
+            # 清理临时目录
+            shutil.rmtree(temp_dir)
+            Log.info(f'成功导入并转换pez文件到: {zip_path}')
+            return True, zip_path
+        except Exception as e:
+            Log.error(f'处理pez文件时出错: {str(e)}')
+            return False, str(e)
+    elif file_path.lower().endswith('.zip'):
+        try:
+            # 直接复制zip文件
+            shutil.copy2(file_path, zip_path)
+            Log.info(f'成功导入zip文件到: {zip_path}')
+            return True, zip_path
+        except Exception as e:
+            Log.error(f'复制zip文件时出错: {str(e)}')
+            return False, str(e)
+    else:
+        return False, '不支持的文件格式，仅支持.pez和.zip文件'
+
+# 打开文件选择对话框
+def import_file():
+    file_path = filedialog.askopenfilename(
+        title='选择谱面文件',
+        filetypes=[('谱面文件', '*.pez *.zip')]
+    )
+    if file_path:
+        success, message = handle_imported_file(file_path)
+        if success:
+            # 重新加载谱面列表
+            global song_list, songlen
+            song_list = load_song_list()
+            songlen = len(song_list)
+            print(f'文件导入成功: {message}')
+        else:
+            print(f'文件导入失败: {message}')
+
+# 加载谱面列表
+def load_song_list():
+    """
+    加载preset和userCharts文件夹中的所有谱面文件
+    :return: 包含所有谱子信息的列表，每个元素是元组(谱子名称, 是否来自userCharts)
+    """
+    song_list = []
+    
+    # 扫描preset文件夹
+    preset_dir = os.path.join(os.path.dirname(__file__), 'preset')
+    if os.path.exists(preset_dir):
+        for file in os.listdir(preset_dir):
+            if file.lower().endswith('.zip'):
+                song_name = os.path.splitext(file)[0]
+                song_list.append((song_name, False))
+    
+    # 扫描userCharts文件夹
+    user_charts_dir = os.path.join(os.path.dirname(__file__), 'userCharts')
+    if os.path.exists(user_charts_dir):
+        for file in os.listdir(user_charts_dir):
+            if file.lower().endswith('.zip'):
+                song_name = os.path.splitext(file)[0]
+                song_list.append((song_name, True))
+    
+    return song_list
+
+# 绘制圆角矩形
+def draw_rounded_rect(surface, rect, color, radius):
+    x, y, width, height = rect
+    pygame.draw.rect(surface, color, (x, y + radius, width, height - 2 * radius))
+    pygame.draw.rect(surface, color, (x + radius, y, width - 2 * radius, height))
+    pygame.draw.circle(surface, color, (x + radius, y + radius), radius)
+    pygame.draw.circle(surface, color, (x + width - radius, y + radius), radius)
+    pygame.draw.circle(surface, color, (x + radius, y + height - radius), radius)
+    pygame.draw.circle(surface, color, (x + width - radius, y + height - radius), radius)
+
 
 def is_chinese(string):
     """
@@ -57,6 +166,7 @@ def choose():
     window_x = int(1920/2)
     window_y = int(1080/2)
     WHITE = (255,255,255)
+    LIGHT_BLUE = (173, 216, 230, 255)  # 浅蓝色
     BLACK = (0,0,0)
     FPS = 60
 
@@ -72,8 +182,9 @@ def choose():
     image_surface.scroll(0,0)
     image_surface = pygame.transform.scale(image_surface, (window_x,window_y))
 
-    #歌曲列表
-    song_list = ['We Are Hardcore','Terrasphere','Aphasia']
+    #加载谱面列表
+    global song_list, songlen
+    song_list = load_song_list()
     songlen = len(song_list)
     #加载歌曲背景
     songpic = pygame.image.load('resources/texture/song.png').convert_alpha()
@@ -116,6 +227,17 @@ def choose():
         xpp = 120#竖间隔
         ypp = 350#竖间隔
 
+        # 导入按钮参数
+        import_btn_width = 30
+        import_btn_height = 30
+        import_btn_x = window_x - import_btn_width - 20
+        import_btn_y = 20
+        import_btn_radius = 10
+        import_btn_color = (255, 255, 255, 155)  # 白色，透明度155
+
+        # 导入按钮矩形
+        import_btn_rect = (import_btn_x, import_btn_y, import_btn_width, import_btn_height)
+
 
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -126,39 +248,60 @@ def choose():
             if event.type==pygame.MOUSEBUTTONDOWN:
                 if event.button==1:
                     #pos[0] = x       pos[1] = y
-                    if event.pos[0]>=button_x                      and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y and event.pos[1]<=button_y+button_height:
-                        #判断鼠标点击位置是否在选歌按钮1上
-                        #print('用户选择:',song_list[0])
-                        Log.info('User Choose [0]')
-                        return song_list[0].replace(" ","")
-                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width                    and event.pos[1]>=button_y+xpp and event.pos[1]<=button_y+xpp+button_height:
-                        #判断鼠标点击位置是否在选歌按钮2上
-                        #print('用户选择:',song_list[1])
-                        Log.info('User Choose [1]')
-                        return song_list[1].replace(" ","")
-                    elif event.pos[0]>=button_x                    and event.pos[0]<=button_x+button_width           and event.pos[1]>=button_y+(xpp*2) and event.pos[1]<=button_y+(xpp*2)+button_height:
-                        #判断鼠标点击位置是否在选歌按钮3上
-                        #print('用户选择:',song_list[2])
-                        Log.info('User Choose [2]')
-                        return song_list[2].replace(" ","")
+                    # 检查导入按钮点击
+                    if (event.pos[0] >= import_btn_x and
+                        event.pos[0] <= import_btn_x + import_btn_width and
+                        event.pos[1] >= import_btn_y and
+                        event.pos[1] <= import_btn_y + import_btn_height):
+                        # 打开文件选择对话框
+                        import_file()
+                    else:
+                        # 检查是否点击了谱面按钮
+                        for i in range((songlen-1)//columns+1):
+                            for j in range(columns):
+                                idx = i * columns + j
+                                if idx >= songlen:
+                                    break
+                                # 计算当前按钮位置
+                                current_pic_x = 55 + i * ypp
+                                current_button_x = 76 + 159*1.5 + i * ypp
+                                current_button_y = 62 + j * xpp
+                                # 检查点击位置
+                                if (event.pos[0] >= current_button_x and
+                                    event.pos[0] <= current_button_x + button_width and
+                                    event.pos[1] >= current_button_y and
+                                    event.pos[1] <= current_button_y + button_height):
+                                    song_name = song_list[idx][0]
+                                    Log.info(f'User Choose [{idx}]: {song_name}')
+                                    return song_name.replace(" ","")
         screen.blit(image_surface, (0, 0))
         
+        # 绘制导入按钮
+        temp_surface = pygame.Surface((import_btn_width, import_btn_height), pygame.SRCALPHA)
+        draw_rounded_rect(temp_surface, (0, 0, import_btn_width, import_btn_height), import_btn_color, import_btn_radius)
+        screen.blit(temp_surface, (import_btn_x, import_btn_y))
+
         u = 0
         columns = 4
         for i in range((songlen-1)//columns+1):#排列-列个数
+            current_pic_x = 55 + i * ypp
+            current_button_x = 76 + 159*1.5 + i * ypp
+            current_name_x = 90 + i * ypp
             
-            for i in range(columns):
-                if u >= songlen:#判定有没有超出list个数
+            for j in range(columns):
+                idx = i * columns + j
+                if idx >= songlen:#判定有没有超出list个数
                     break#跳出这个循环力
 
-                screen.blit(songpic, (pic_x,pic_y+xpp*(i)))#绘制歌曲背景
-                screen.blit(songstart, (button_x,button_y+xpp*(i)))#绘制选歌按钮
-                if is_chinese(song_list[u]):
-                    font_CN.render_to(screen,(name_x,name_y+xpp*(i)-4),song_list[u],WHITE)#绘制歌曲名称
+                screen.blit(songpic, (current_pic_x,pic_y+xpp*(j)))#绘制歌曲背景
+                screen.blit(songstart, (current_button_x,button_y+xpp*(j)))#绘制选歌按钮
+                song_name, is_user_chart = song_list[idx]
+                color = LIGHT_BLUE if is_user_chart else WHITE
+                if is_chinese(song_name):
+                    font_CN.render_to(screen,(current_name_x,name_y+xpp*(j)-4),song_name,color)#绘制歌曲名称
                 else:
-                    font_EN.render_to(screen,(name_x,name_y+xpp*(i)),song_list[u],WHITE)#绘制歌曲名称
+                    font_EN.render_to(screen,(current_name_x,name_y+xpp*(j)),song_name,color)#绘制歌曲名称
                 u+=1
-            pic_x+=ypp;button_x+=ypp;name_x+=ypp
 
         #screen.blit(songpic, (pic_x,pic_y+xpp))#绘制歌曲背景
         #screen.blit(songstart, (button_x,button_y+xpp))#绘制选歌按钮
