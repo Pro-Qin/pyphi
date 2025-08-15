@@ -40,9 +40,13 @@ background = pygame.transform.smoothscale(pygame.image.load("./cache/bg_b_b.jpg"
 # Log.info('Image Init.')
 try:
     # 初始化字体
-    f1      = pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf", 12)
+    # f1      = pygame.freetype.Font(r"resources/Exo-Regular.pfb.ttf", 12)
+    f1      = pygame.freetype.Font(r"resources/cmdysj.ttf", 12)
     f2      = pygame.freetype.Font(r"resources/Saira-Medium.ttf", 15)
-    font1   = pygame.font.Font(r"resources/Exo-Regular.pfb.ttf", 14)
+    f3      = pygame.freetype.Font(r"resources/Saira-Medium.ttf", 12)
+
+    # font1   = pygame.font.Font(r"resources/Exo-Regular.pfb.ttf", 14)
+    font1   = pygame.font.Font(r"resources/cmdysj.ttf", 14)
     font2   = pygame.font.Font(r"resources/Saira-Medium.ttf", 30)
     font40  = pygame.font.Font("resources/cmdysj.ttf", 40)
     font30  = pygame.font.Font("resources/cmdysj.ttf", 30)
@@ -289,11 +293,14 @@ try:
         if note_num >= 3:
             surface.blit(combo_text, (cor.WIDTH/2-font1.size("COMBO")[0]/2+2.5, 42))
             surface.blit(combo_num_text, (cor.WIDTH/2-font25.size(str(note_num))[0]/2, 3))
-        surface.blit(pause, (20, 21))  # 暂停按钮
-        surface.blit(songsNameBar, (20, 500))  # 歌曲名条
+        surface.blit    (pause, (20, 21))  # 暂停按钮
+        surface.blit    (songsNameBar, (20, 500))  # 歌曲名条
         SongsName       = f2.render_to(screen, [30, 503], cor.NAME, fgcolor=(255, 255, 255), size=21)  # 歌曲名
         SongsLevel      = f1.render_to(screen, [870, 507], cor.LEVEL,fgcolor=(255, 255, 255), size=18)  # 歌曲等级
-        mark            = f1.render_to(screen, [815, 23],str(int(note_num/cor.NOTE_NUM*1000000)).rjust(7, "0"), fgcolor=(255, 255, 255), size=28)  # 分数
+        # 计算分数文本右对齐的x坐标
+        score_str       = str(int(note_num/cor.NOTE_NUM*1000000)).rjust(7, "0")
+        score_width     = f1.get_rect(score_str, size=28)[2]
+        mark            = f1.render_to(screen, [cor.WIDTH - score_width - 20, 23], score_str, fgcolor=(255, 255, 255), size=28)  # 分数右对齐显示
         fps_text        = f1.render_to(screen, [0, 8],str(int(clock.get_fps())).rjust(3, "0"), fgcolor=(255, 255, 255), size=12)
 
         # ---------- DISPLAY TEXTS ----------
