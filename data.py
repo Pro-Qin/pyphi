@@ -226,7 +226,15 @@ def load_zip(zip_dir):
     picture: str
     level = "Unknown. ?"
     name: str
+    artist: str = "Unknown"
+    creator: str = "Unknown"
+    bpm: str = "Unknown"
 
+    # 定义文件类型排除列表
+    excluded_extensions = ["jpg", "jpeg", "png", "bmp", "json", "pec", "mp3", "ogg", "wav", "aac"]
+
+    # 首先尝试读取info.txt
+    info_found = False
     if os.path.exists("./cache/temp/info.txt"):
         try:
             with open("./cache/temp/info.txt", "r", encoding="gbk") as f:
@@ -234,38 +242,67 @@ def load_zip(zip_dir):
                 f.readline()
                 line = f.readline()
                 while line:
-                    key, value = line.strip().split(": ")
-                    if key == "Chart":
-                        chart = value
-                    elif key == "Picture":
-                        picture = value
-                    elif key == "Song":
-                        song = value
-                    elif key == "Name":
-                        name = value
-                    elif key == "Level":
-                        level = value
-                    line = f.readline()
+                    try:
+                        if ": " in line:
+                            key, value = line.strip().split(": ", 1)
+                            # 扩展info识别关键词
+                            if key.lower() in ["chart", "谱面", "铺面"]:
+                                chart = value
+                            elif key.lower() in ["picture", "image", "图片", "背景图"]:
+                                picture = value
+                            elif key.lower() in ["song", "music", "音频", "歌曲"]:
+                                song = value
+                            elif key.lower() in ["name", "标题", "歌曲名"]:
+                                name = value
+                            elif key.lower() in ["level", "难度", "等级"]:
+                                level = value
+                            elif key.lower() in ["artist", "艺术家", "歌手"]:
+                                artist = value
+                            elif key.lower() in ["creator", "作者", "谱师"]:
+                                creator = value
+                            elif key.lower() in ["bpm", "速度"]:
+                                bpm = value
+                        line = f.readline()
+                    except ValueError:
+                        # 如果行格式不正确，跳过
+                        line = f.readline()
+            info_found = True
         except UnicodeDecodeError:
             with open("./cache/temp/info.txt", "r", encoding="utf-8") as f:
                 # 第一行是 #
                 f.readline()
                 line = f.readline()
                 while line:
-                    key, value = line.strip().split(": ")
-                    if key == "Chart":
-                        chart = value
-                    elif key == "Picture":
-                        picture = value
-                    elif key == "Song":
-                        song = value
-                    elif key == "Name":
-                        name = value
-                    elif key == "Level":
-                        level = value
-                    line = f.readline()
+                    try:
+                        if ": " in line:
+                            key, value = line.strip().split(": ", 1)
+                            # 扩展info识别关键词
+                            if key.lower() in ["chart", "谱面", "铺面"]:
+                                chart = value
+                            elif key.lower() in ["picture", "image", "图片", "背景图"]:
+                                picture = value
+                            elif key.lower() in ["song", "music", "音频", "歌曲"]:
+                                song = value
+                            elif key.lower() in ["name", "标题", "歌曲名"]:
+                                name = value
+                            elif key.lower() in ["level", "难度", "等级"]:
+                                level = value
+                            elif key.lower() in ["artist", "艺术家", "歌手"]:
+                                artist = value
+                            elif key.lower() in ["creator", "作者", "谱师"]:
+                                creator = value
+                            elif key.lower() in ["bpm", "速度"]:
+                                bpm = value
+                        line = f.readline()
+                    except ValueError:
+                        # 如果行格式不正确，跳过
+                        line = f.readline()
+            info_found = True
+        except Exception as e:
+            print(f"读取info.txt失败: {e}")
 
-    elif os.path.exists("./cache/temp/info.csv"):
+    # 尝试读取info.csv
+    if not info_found and os.path.exists("./cache/temp/info.csv"):
         try:
             with open("./cache/temp/info.csv", "r", encoding="gbk") as f:
                 csv_ptr = csv.reader(f)
@@ -281,6 +318,12 @@ def load_zip(zip_dir):
                 picture = values[2]
                 name = values[6]
                 level = values[7]
+                # 尝试从csv中获取更多信息
+                if len(values) > 8:
+                    artist = values[8] if values[8] else artist
+                if len(values) > 9:
+                    creator = values[9] if values[9] else creator
+            info_found = True
         except UnicodeDecodeError:
             with open("./cache/temp/info.csv", "r", encoding="utf-8") as f:
                 csv_ptr = csv.reader(f)
@@ -296,19 +339,83 @@ def load_zip(zip_dir):
                 picture = values[2]
                 name = values[6]
                 level = values[7]
+                # 尝试从csv中获取更多信息
+                if len(values) > 8:
+                    artist = values[8] if values[8] else artist
+                if len(values) > 9:
+                    creator = values[9] if values[9] else creator
+            info_found = True
+        except Exception as e:
+            print(f"读取info.csv失败: {e}")
 
-    else:
-        # raise FileNotFoundError(
-        #     "Unsupported pack format: info.txt or info.csv is required."
-        # )
+    # 如果info.txt和info.csv未找到或读取失败，尝试从其他文件中读取
+    if not info_found:
+        print("未找到有效的info.txt或info.csv，尝试从其他文件中读取信息...")
+        # 遍历所有文件
         for file in os.listdir("./cache/temp"):
-            if file.split(".")[-1].lower() in ["jpg", "jpeg", "png", "bmp"]:
+            file_ext = file.split(".")[-1].lower() if "." in file else ""
+            # 跳过排除的文件类型
+            if file_ext in excluded_extensions:
+                continue
+
+            file_path = os.path.join("./cache/temp", file)
+            # 尝试以不同编码打开文件
+            for encoding in ["utf-8", "gbk", "ansi"]:
+                try:
+                    with open(file_path, "r", encoding=encoding) as f:
+                        content = f.read()
+                        # 搜索可能的info关键词
+                        lines = content.split("\n")
+                        for line in lines:
+                            if ": " in line:
+                                try:
+                                    key, value = line.strip().split(": ", 1)
+                                    # 使用扩展的关键词列表
+                                    if key.lower() in ["chart", "谱面", "铺面"]:
+                                        chart = value
+                                        print(f"从{file}中找到谱面路径: {chart}")
+                                    elif key.lower() in ["picture", "image", "图片", "背景图"]:
+                                        picture = value
+                                        print(f"从{file}中找到背景图路径: {picture}")
+                                    elif key.lower() in ["song", "music", "音频", "歌曲"]:
+                                        song = value
+                                        print(f"从{file}中找到音频路径: {song}")
+                                    elif key.lower() in ["name", "标题", "歌曲名"]:
+                                        name = value
+                                        print(f"从{file}中找到歌曲名: {name}")
+                                    elif key.lower() in ["level", "难度", "等级"]:
+                                        level = value
+                                        print(f"从{file}中找到难度: {level}")
+                                    elif key.lower() in ["artist", "艺术家", "歌手"]:
+                                        artist = value
+                                    elif key.lower() in ["creator", "作者", "谱师"]:
+                                        creator = value
+                                    elif key.lower() in ["bpm", "速度"]:
+                                        bpm = value
+                                except ValueError:
+                                    continue
+                        # 如果已经找到必要的信息，可以提前退出
+                        if chart and song and picture and name:
+                            break
+                except (UnicodeDecodeError, FileNotFoundError):
+                    continue
+            if chart and song and picture and name:
+                break
+
+    # 如果仍然没有找到所有必要的信息，使用备用方案
+    if not chart or not song or not picture or not name:
+        print("无法从文件中获取完整信息，使用备用方案...")
+        for file in os.listdir("./cache/temp"):
+            if file.split(".")[-1].lower() in ["jpg", "jpeg", "png", "bmp"] and not picture:
                 picture = file
-            elif file.split(".")[-1].lower() in ["json", "pec", "pez"]:
+                print(f"自动选择背景图: {picture}")
+            elif file.split(".")[-1].lower() in ["json", "pec", "pez"] and not chart:
                 chart = file
                 name = '.'.join(file.split(".")[:-1])
-            elif file.split(".")[-1].lower() in ["mp3", "ogg", "wav", "aac"]:
+                print(f"自动选择谱面: {chart}")
+            elif file.split(".")[-1].lower() in ["mp3", "ogg", "wav", "aac"] and not song:
                 song = file
+                print(f"自动选择音频: {song}")
 
     print("done")
 
