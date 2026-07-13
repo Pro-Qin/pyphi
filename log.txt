@@ -1,0 +1,4 @@
+[ERROR] 判定线 0: 未知easingType 1157627904 在事件 {'easingType': 1157627904, 'end': 0.0, 'endTime': [185, 0, 32], 'linkgroup': 0, 'start': 0.0, 'startTime': [181, 0, 32]}
+[ERROR] 判定线 0: 未知easingType 1157627904 在事件 {'easingType': 1157627904, 'end': 0.0, 'endTime': [189, 0, 32], 'linkgroup': 0, 'start': 0.0, 'startTime': [185, 0, 32]}
+[ERROR] 判定线 0: 未知easingType 1157627904 在事件 {'easingType': 1157627904, 'end': 0.0, 'endTime': [193, 0, 32], 'linkgroup': 0, 'start': 0.0, 'startTime': [189, 0, 32]}
+[ERROR] 判定线 0: 未知easingType 1157627904 在事件 {'easingType': 1157627904, 'end': 0.0, 'endTime': [197, 0, 32], 'linkgroup': 0, 'start': 0.0, 'startTime': [193, 0, 32]}

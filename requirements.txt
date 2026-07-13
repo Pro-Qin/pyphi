@@ -3,5 +3,5 @@ Pillow
 tinytag
 pydub
 eyed3
-threading
 matplotlib
+opencv-python
