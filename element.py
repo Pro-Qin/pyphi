@@ -164,6 +164,9 @@ class JudgeLine:
 # Note — 使用 Phira 坐标计算
 # ==============================================================================
 
+# Phira 的 SPEED_RATIO = 10 / 45 / 0.83175
+RPE_SPEED_RATIO = 10.0 / 45.0 / 0.83175
+
 class Note:
     TAP = 1
     DRAG = 2
@@ -214,19 +217,16 @@ class Note:
 
     def compute_y(self, time_sec: float, line_height: float) -> float:
         """
-        基于 Phira 公式计算 note 的相对 y 位置
-        base = (note.height - line_height) * note.speed + note.y_offset
-        然后根据判定线的角度投影到屏幕
+        计算 note 的相对 y 位置（像素）
+        使用 Phira 速度积分 + 原版 pyphi 的像素缩放
+        
+        原版公式: _y = (b2s(at) - floor_position) * DEBUG_N * speed * 800
+        新公式:   _y = (note.height - line_height) / SPEED_RATIO * DEBUG_N * speed * 800
         """
-        # Phira: base = (note.height - line_height) / aspect_ratio * note.speed
-        # 但在 pyphi 的屏幕坐标系下，不需要 aspect_ratio
-        base = (self.height - line_height) * self.speed
-        
-        # 加上 y_offset（Phira 的 object.translation.y / speed 转换为世界坐标）
-        y_offset = self.y_offset * self.speed
-        y_pos = base + y_offset
-        
-        return y_pos
+        # (note.height - line_height) / SPEED_RATIO 将速度积分差值转回时间（秒）
+        time_diff = (self.height - line_height) / RPE_SPEED_RATIO
+        _y = time_diff * cor.DEBUG_N * self.speed * 800
+        return _y
 
     def upgrade(self, time_sec: float, line_height: float):
         """计算 note 在屏幕上的位置"""
@@ -331,7 +331,8 @@ class Hold(Note):
 
         # Hold 的起始和结束 y 位置
         base_y = self.compute_y(time_sec, line_height)
-        end_base = (self.end_height - line_height) * self.speed + self.y_offset * self.speed
+        end_time_diff = (self.end_height - line_height) / RPE_SPEED_RATIO
+        end_base = end_time_diff * cor.DEBUG_N * self.speed * 800
         
         if time_sec < self.time:
             length = (end_base - base_y)  # 整个长度

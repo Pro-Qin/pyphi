@@ -194,7 +194,9 @@ try:
             cx = cor.WIDTH / 2 - font1.size("COMBO")[0] / 2 + 2.5
             cy = cor.WIDTH / 2 - font25.size(str(note_num))[0] / 2
             # 阴影
-            surface.blit(font2.render(str(note_num), True, (0,0,0,120))[0], (cy+2, 5))
+            shadow = font2.render(str(note_num), True, (0,0,0))
+            shadow.set_alpha(120)
+            surface.blit(shadow, (cy+2, 5))
             surface.blit(combo_t, (cx, 42))
             surface.blit(combo_n, (cy, 3))
 
