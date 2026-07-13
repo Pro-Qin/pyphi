@@ -13,12 +13,19 @@ import welcome as w
 pygame.init()
 print('Choosing UI.')
 
-gamename = w.choose()
-try:
-    data.load_zip(f'preset/{gamename}.zip')
-except FileNotFoundError:
-    data.load_zip(f'userCharts/{gamename}.zip')
-print(f'Loading Chart {gamename}.')
+gamename = ''
+while not gamename:
+    try:
+        gamename = w.choose()
+        try:
+            data.load_zip(f'preset/{gamename}.zip')
+        except FileNotFoundError:
+            data.load_zip(f'userCharts/{gamename}.zip')
+        print(f'Loading Chart {gamename}.')
+    except Exception as e:
+        print(f'加载谱面失败: {e}')
+        print('请选择其他谱面。')
+        gamename = ''
 
 w.loading()
 print('Loading UI.')

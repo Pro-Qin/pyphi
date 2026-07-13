@@ -329,6 +329,7 @@ def load_zip(zip_dir):
     """
     加载谱面 zip 包 — 支持多种格式
     """
+    md5 = ''  # 确保异常处理中可安全引用
     try:
         print(f'\nloading zip: {zip_dir}')
         
@@ -345,14 +346,34 @@ def load_zip(zip_dir):
                 shutil.rmtree(f"./cache/{md5}")
             else:
                 print('cache found')
-                # 读取缓存的元数据
-                with open(f"./cache/{md5}/info.csv", 'r') as f:
-                    rr = csv.reader(f)
-                    for row in rr:
-                        song = row[0]
-                        picture = row[1]
-                        chart = row[2]
+                # 读取缓存的元数据（支持 info.txt 和 info.csv）
+                info_path = None
+                for ext in ['.csv', '.txt']:
+                    p = f"./cache/{md5}/info{ext}"
+                    if os.path.exists(p):
+                        info_path = p
                         break
+                if info_path:
+                    content = open(info_path, 'r', encoding='utf-8').read()
+                    if info_path.endswith('.csv'):
+                        for row in csv.reader(content.splitlines()):
+                            song = row[0] if len(row) > 0 else ''
+                            picture = row[1] if len(row) > 1 else ''
+                            chart = row[2] if len(row) > 2 else ''
+                            break
+                    else:
+                        song = picture = chart = ''
+                        for line in content.splitlines():
+                            if ':' in line:
+                                k, v = line.split(':', 1)
+                                k = k.strip().lower()
+                                v = v.strip()
+                                if k == 'song': song = v
+                                elif k == 'picture': picture = v
+                                elif k == 'chart': chart = v
+                else:
+                    song = picture = chart = ''
+                    print('WARN: no info file in cache')
                 print('loading cache ...    ', end='')
                 load_rpe(f"./cache/{md5}/chart.json")
                 cor.SONG = f"./cache/{md5}/{song}"
@@ -506,5 +527,6 @@ def load_zip(zip_dir):
         return 0
     
     except Exception as e:
-        shutil.rmtree(f"./cache/{md5}", ignore_errors=True)
+        if md5:
+            shutil.rmtree(f"./cache/{md5}", ignore_errors=True)
         raise e
