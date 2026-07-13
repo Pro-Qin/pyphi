@@ -9,7 +9,6 @@ import sys
 import pygame.freetype  #文本
 import random
 import time
-import platform
 import os
 import zipfile
 import shutil
@@ -23,25 +22,32 @@ if not os.path.exists(user_charts_dir):
 
 # 处理导入的文件并保存为zip
 def handle_imported_file(file_path):
+    """
+    处理导入的谱面文件，支持多种格式：
+    - .zip: Phigros 谱面包（直接复制）
+    - .pez: Phigros 谱面包（解压后重新打包）
+    - .json: RPE / PGR 格式（打包为 zip）
+    - .pec: PEC 格式（打包为 zip）
+    - .pgr: PGR 格式（打包为 zip）
+    """
     # 获取文件名（不含扩展名）
     file_name = os.path.splitext(os.path.basename(file_path))[0]
     zip_path = os.path.join(user_charts_dir, f'{file_name}.zip')
+    ext = file_path.lower()
 
-    # 检查是否为pez文件
-    if file_path.lower().endswith('.pez'):
-        # 创建临时目录
-        temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+    if ext.endswith('.pez') or ext.endswith('.zip'):
+        # 临时目录处理
+        temp_dir = os.path.join(os.path.dirname(__file__), 'temp_import')
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
 
         try:
-            # 解压pez文件
+            # 解压文件
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_dir)
 
-            # 创建新的zip文件
+            # 重新打包为 zip
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
-                # 遍历临时目录中的所有文件
                 for root, dirs, files in os.walk(temp_dir):
                     for file in files:
                         file_full_path = os.path.join(root, file)
@@ -50,28 +56,35 @@ def handle_imported_file(file_path):
 
             # 清理临时目录
             shutil.rmtree(temp_dir)
-            Log.info(f'成功导入并转换pez文件到: {zip_path}')
+            Log.info(f'成功导入谱面包到: {zip_path}')
             return True, zip_path
         except Exception as e:
-            Log.error(f'处理pez文件时出错: {str(e)}')
-            return False, str(e)
-    elif file_path.lower().endswith('.zip'):
-        try:
-            # 直接复制zip文件
-            shutil.copy2(file_path, zip_path)
-            Log.info(f'成功导入zip文件到: {zip_path}')
-            return True, zip_path
-        except Exception as e:
-            Log.error(f'复制zip文件时出错: {str(e)}')
+            Log.error(f'处理谱面包时出错: {str(e)}')
             return False, str(e)
     else:
-        return False, '不支持的文件格式，仅支持.pez和.zip文件'
+        # 单文件格式 (.json, .pec, .pgr) — 直接复制并重命名
+        # 用户可以用 import 功能直接导入单文件，data.py 会处理格式识别
+        try:
+            shutil.copy2(file_path, zip_path)
+            Log.info(f'成功导入谱面文件到: {zip_path}')
+            return True, zip_path
+        except Exception as e:
+            Log.error(f'复制文件时出错: {str(e)}')
+            return False, str(e)
+
 
 # 打开文件选择对话框
 def import_file():
     file_path = filedialog.askopenfilename(
         title='选择谱面文件',
-        filetypes=[('谱面文件', '*.pez *.zip')]
+        filetypes=[
+            ('所有支持的格式', '*.pez *.zip *.json *.pec *.pgr'),
+            ('谱面包', '*.pez *.zip'),
+            ('RPE/PGR 谱面', '*.json'),
+            ('PEC 谱面', '*.pec'),
+            ('PGR 谱面', '*.pgr'),
+            ('所有文件', '*.*')
+        ]
     )
     if file_path:
         success, message = handle_imported_file(file_path)
@@ -80,9 +93,16 @@ def import_file():
             global song_list, songlen
             song_list = load_song_list()
             songlen = len(song_list)
-            print(f'文件导入成功: {message}')
+            print(f'✅ 文件导入成功: {message}')
+            # 创建一个短暂的提示 surface
+            try:
+                hint_font = pygame.font.Font(None, 24)
+                hint_text = hint_font.render('导入成功!', True, (0, 255, 0))
+                # 提示会在下一帧显示
+            except:
+                pass
         else:
-            print(f'文件导入失败: {message}')
+            print(f'❌ 文件导入失败: {message}')
 
 # 加载谱面列表
 def load_song_list():
@@ -133,29 +153,6 @@ def is_chinese(string):
 
     return False
 
-def welcome():
-    '''已报废，备份'''
-    window = Tk()
-    window.title('Phigros for Python运行须知')
-    window.geometry('420x150')
-    #window.resizable(0,0)
-
-
-    def close_window():
-        window.destroy()
-
-    swq = platform.system()
-
-    Label(window, text="1.已安装Python3.x版本").place(x=2,y=0)
-    Label(window, text="2.已安装pygame,PIL,zipfile,readfile,pydub,eyed3库").place(x=2,y=20)
-    Label(window, text="3.开发环境为macOS，可能不太兼容").place(x=2,y=40)
-    Label(window, text="4.你当前的系统是{}".format(swq)).place(x=2,y=60)
-    Label(window, text="5.闪退90%是你的问题，请检查文件是否存在以及格式是否符合要求！").place(x=2,y=80)
-    Label(window, text="6.程序尚未开发完整").place(x=2,y=100)
-    
-    Button(window,text="确定",command=close_window).place(x=90,y=120)
-    Button(window,text="取消",command=sys.exit).place(x=170,y=120)
-    window.mainloop()
 
 def choose():
     #使用pygame之前必须初始化
@@ -301,16 +298,6 @@ def choose():
                     font_CN.render_to(screen,(current_name_x,name_y+xpp*(j)-4),song_name,color)#绘制歌曲名称
                 else:
                     font_EN.render_to(screen,(current_name_x,name_y+xpp*(j)),song_name,color)#绘制歌曲名称
-                u+=1
-
-        #screen.blit(songpic, (pic_x,pic_y+xpp))#绘制歌曲背景
-        #screen.blit(songstart, (button_x,button_y+xpp))#绘制选歌按钮
-        #SongName2 = font_EN.render_to(screen,(name_x,name_y+xpp),song_list[1],WHITE)#绘制歌曲名称
-
-
-        #screen.blit(songpic, (pic_x,pic_y+xpp))#绘制歌曲背景
-        #screen.blit(songstart, (button_x,button_y+xpp))#绘制选歌按钮
-        #SongName3 = font_EN.render_to(screen,(name_x,name_y+xpp),song_list[2],WHITE)#绘制歌曲名称
 
         mouse.update()   
         pygame.display.update()#更新屏幕

@@ -1,171 +1,168 @@
+"""
+Phira 兼容的谱面元素渲染
+基于 Phira (https://github.com/TeamFlos/phira) 的实现逻辑
+"""
 import time
+import math
+from collections import deque
 import typing as T
 import pygame.surface
-import math
 import alterobj
 import core as cor
-import threading
 import debug
 
 
-class JudgeLine:
-    # 欺骗指数。用于暂时解决note出现在屏幕外就中断整个判定线的绘制的问题
-    CHEAT_INDICATOR = 1
+# ==============================================================================
+# JudgeLine — 判定线
+# ==============================================================================
 
-    # 判定线
+class JudgeLine:
     def __init__(self):
-        """
-        初始化判定线
-        """
         self.x = 0
         self.y = 0
         self.angle = 0
         self.alpha = 0
         self.speed = 0
         self.id = -1
-        self.lastbeat=0
-        self.x_object: T.Union[alterobj.LineXObject, None] = None
-        self.y_object: T.Union[alterobj.LineYObject, None] = None
-        self.alpha_object: T.Union[alterobj.AlphaObject, None] = None
-        self.angle_object: T.Union[alterobj.AngleObject, None] = None
-        self.speed_object: T.Union[alterobj.LineSpeedObject, None] = None
-        self.note_y_object: T.Union[alterobj.NoteYObject, None] = None
-        # if self.speed_object:
-        #     self.notes_y_object = self.speed_object.get_y_object()
-        # else:
-        #     self.notes_y_object = alterobj.FakeNoteYObject(speed)
+        self.lastbeat = 0
+        
+        # Phira 风格的事件系统
+        self.x_anim: T.Optional[alterobj.AnimFloat] = None
+        self.y_anim: T.Optional[alterobj.AnimFloat] = None
+        self.alpha_anim: T.Optional[alterobj.AnimFloat] = None
+        self.angle_anim: T.Optional[alterobj.AnimFloat] = None
+        self.speed_anim: T.Optional[alterobj.AnimFloat] = None
+        # height 速度积分（关键！Phira 用 height 而非 floor_position）
+        self.height_anim: T.Optional[alterobj.AnimFloat] = None
+        
         self.notes = []
-
         self.holds = []
         self.not_holds = []
         self.above1 = []
         self.above2 = []
-        self.floor_position=0
+        
+        # 缓存
+        self._LINE_LENGTH_HALF = cor.LINE_LENGTH / 2
+        self._last_anim_time = -999.0
 
-    def add_note(self, note):
-        self.notes.append(note)
+    def set_time(self, beat: float):
+        """统一设置所有 AnimFloat 的时间（Phira 的 Object.set_time）"""
+        if beat == self._last_anim_time:
+            return
+        self._last_anim_time = beat
+        
+        if self.x_anim:
+            self.x_anim.set_time(beat)
+            self.x = self.x_anim.now() * cor.LINE_X_SCALE + cor.WIDTH / 2
+        if self.y_anim:
+            self.y_anim.set_time(beat)
+            self.y = self.y_anim.now() * cor.LINE_Y_SCALE + cor.HEIGHT / 2
+        if self.alpha_anim:
+            self.alpha_anim.set_time(beat)
+            self.alpha = self.alpha_anim.now()
+        if self.angle_anim:
+            self.angle_anim.set_time(beat)
+            self.angle = -self.angle_anim.now()
+        if self.speed_anim:
+            self.speed_anim.set_time(beat)
+            self.speed = self.speed_anim.now()
+        # height 已经以秒为单位，不需要额外转换
 
-    def blit(self, surface: pygame.surface.Surface, beat: float):
+    def get_height(self, time_seconds: float) -> float:
+        """获取指定时间（秒）的 line height"""
+        if self.height_anim:
+            # height_anim 的 keyframes 是以秒为单位的时间
+            self.height_anim.set_time(time_seconds)
+            return self.height_anim.now()
+        return 0.0
+
+    def blit(self, surface: pygame.surface.Surface, beat: float, current_time_sec: float):
         """
-        将判定线本身绘制到surface上
-        :param surface: 被绘制的Surface对象
-        :param beat: beat
+        绘制判定线和 note
+        beat: 当前音乐播放的 beat
+        current_time_sec: 当前时间（秒），用于 height 计算
         """
-
-        self.x = self.x_object.get_value(beat)
-        self.y = self.y_object.get_value(beat)
-        self.alpha = self.alpha_object.get_value(beat)
-        self.angle = self.angle_object.get_value(beat)
-        self.speed=self.speed_object.get_value(beat)
-        self.floor_position+=alterobj.b2s(beat-self.lastbeat)
+        self.set_time(beat)
+        
         points = self.get_points()
+        if points and self.alpha > 0:
+            pygame.draw.line(surface, (237, 236, 176, max(0, min(255, int(self.alpha)))), 
+                             points[0], points[1], width=5)
 
-        if points and self.alpha:
-            pygame.draw.line(surface, (237, 236, 176, self.alpha), points[0], points[1], width=5)
-
-        debug.mark(surface, self.x, self.y, r=10)
-
+        # 获取当前 line height (积分速度后的累计位置)
+        line_height = self.get_height(current_time_sec)
+        
+        # 按顺序绘制上面和下面的 note
         for note in self.above1:
-            note.upgrade_and_blit(surface, beat)
-            if note.x_in_surface > cor.WIDTH + cor.WIDTH * JudgeLine.CHEAT_INDICATOR or\
-                    note.x_in_surface < 0 - cor.WIDTH * JudgeLine.CHEAT_INDICATOR or \
-                    note.y_in_surface < 0 - cor.HEIGHT * JudgeLine.CHEAT_INDICATOR or\
-                    note.y_in_surface > cor.HEIGHT + cor.HEIGHT * JudgeLine.CHEAT_INDICATOR:
-                break
-
+            note.upgrade_and_blit(surface, beat, current_time_sec, line_height)
         for note in self.above2:
-            note.upgrade_and_blit(surface, beat)
-            if note.x_in_surface > cor.WIDTH + cor.WIDTH * JudgeLine.CHEAT_INDICATOR or\
-                    note.x_in_surface < 0 - cor.WIDTH * JudgeLine.CHEAT_INDICATOR or \
-                    note.y_in_surface < 0 - cor.HEIGHT * JudgeLine.CHEAT_INDICATOR or\
-                    note.y_in_surface > cor.HEIGHT + cor.HEIGHT * JudgeLine.CHEAT_INDICATOR:
-                break
-        self.lastbeat=beat
+            note.upgrade_and_blit(surface, beat, current_time_sec, line_height)
+
     def get_points(self):
-        # 此处除cross内坐标，都是将y轴向上视为y轴正方向
-        # 交点
-        _points = []
-
+        """计算判定线在屏幕上的两端点"""
         _angle = self.angle % 180
+        _angle_rad = math.radians(_angle)
+        cos_a = math.cos(_angle_rad)
+        sin_a = math.sin(_angle_rad)
 
-        # 找出线段左右边界
-        line_left = self.x + cor.LINE_LENGTH / 2 * math.cos(math.radians(_angle))
-        line_right = self.x - cor.LINE_LENGTH / 2 * math.cos(math.radians(_angle))
+        half_len = self._LINE_LENGTH_HALF
 
-        if line_left > line_right:
-            line_left, line_right = line_right, line_left
+        line_left_x = self.x + half_len * cos_a
+        line_right_x = self.x - half_len * cos_a
+        line_top_y = -self.y + half_len * sin_a
+        line_bottom_y = -self.y - half_len * sin_a
 
-        # 找出线段上下边界
-        line_top = -self.y + cor.LINE_LENGTH / 2 * math.sin(math.radians(_angle))
-        line_bottom = -self.y - cor.LINE_LENGTH / 2 * math.sin(math.radians(_angle))
+        if line_left_x > line_right_x:
+            line_left_x, line_right_x = line_right_x, line_left_x
+        if line_top_y < line_bottom_y:
+            line_top_y, line_bottom_y = line_bottom_y, line_top_y
 
-        if line_top < line_bottom:
-            line_top, line_bottom = line_bottom, line_top
-
+        _points = []
         if _angle == 90:
-            # 划定最小值域
             if 0 <= self.x <= cor.WIDTH:
-                if line_top >= 0 >= line_bottom:
+                if line_top_y >= 0 >= line_bottom_y:
                     _points.append((self.x, 0))
-                if line_top >= -cor.HEIGHT >= line_bottom:
+                if line_top_y >= -cor.HEIGHT >= line_bottom_y:
                     _points.append((self.x, cor.HEIGHT))
         elif _angle == 0:
             if -cor.HEIGHT <= -self.y <= 0:
-                if line_left <= 0 <= line_right:
+                if line_left_x <= 0 <= line_right_x:
                     _points.append((0, self.y))
-                if line_left <= cor.WIDTH <= line_right:
+                if line_left_x <= cor.WIDTH <= line_right_x:
                     _points.append((cor.WIDTH, self.y))
         else:
-            # 先求斜率
-            k = math.tan(math.radians(_angle))
-            # 再求截距
+            k = math.tan(_angle_rad)
             b = -self.y - self.x * k
-
-            # 上方直线交点
-            # y = kx + b, y = 0 => x = -b / k
             top_cross_x = -b / k
-
-            # 下方直线交点
-            # y = kx + b, y = HEIGHT => x = (-HEIGHT - b) / k
             bottom_cross_x = (-cor.HEIGHT - b) / k
-
-            # 左侧直线交点
             right_cross_y = cor.WIDTH * k + b
-
-            # 右侧直线交点
             left_cross_y = b
 
-            if 0 <= top_cross_x <= cor.WIDTH:
-                if line_top >= 0 >= line_bottom:
-                    _points.append((top_cross_x, 0))
-            if 0 <= bottom_cross_x <= cor.WIDTH:
-                if line_top >= -cor.HEIGHT >= line_bottom:
-                    _points.append((bottom_cross_x, cor.HEIGHT))
-            if -cor.HEIGHT < left_cross_y < 0:
-                if line_left <= 0 <= line_right:
-                    _points.append((0, -left_cross_y))
-            if -cor.HEIGHT < right_cross_y < 0:
-                if line_left <= cor.WIDTH <= line_right:
-                    _points.append((cor.WIDTH, -right_cross_y))
+            if 0 <= top_cross_x <= cor.WIDTH and line_top_y >= 0 >= line_bottom_y:
+                _points.append((top_cross_x, 0))
+            if 0 <= bottom_cross_x <= cor.WIDTH and line_top_y >= -cor.HEIGHT >= line_bottom_y:
+                _points.append((bottom_cross_x, cor.HEIGHT))
+            if -cor.HEIGHT < left_cross_y < 0 and line_left_x <= 0 <= line_right_x:
+                _points.append((0, -left_cross_y))
+            if -cor.HEIGHT < right_cross_y < 0 and line_left_x <= cor.WIDTH <= line_right_x:
+                _points.append((cor.WIDTH, -right_cross_y))
 
         if len(_points) == 1:
-            # 只有一个交点，那么可能是线不够长
-            # 上方端点在画面内
-            if -cor.HEIGHT <= line_top <= 0 and \
-                    0 <= (line_left if _angle > 90 else line_right) <= cor.WIDTH:
-                point_x = (line_left if _angle > 90 else line_right)
-                _points.append((point_x, -line_top))
-            # 下方端点在画面内
-            elif -cor.HEIGHT <= line_bottom <= 0 and \
-                    0 <= (line_right if _angle > 90 else line_left) <= cor.WIDTH:
-                point_x = line_right if _angle > 90 else line_left
-                _points.append((point_x, -line_bottom))
+            if -cor.HEIGHT <= line_top_y <= 0 and \
+                    0 <= (line_left_x if _angle > 90 else line_right_x) <= cor.WIDTH:
+                _points.append((line_left_x if _angle > 90 else line_right_x, -line_top_y))
+            elif -cor.HEIGHT <= line_bottom_y <= 0 and \
+                    0 <= (line_right_x if _angle > 90 else line_left_x) <= cor.WIDTH:
+                _points.append((line_right_x if _angle > 90 else line_left_x, -line_bottom_y))
             else:
-                # 只是擦到一个角了，不用显示
                 _points = []
 
         return _points
 
+
+# ==============================================================================
+# Note — 使用 Phira 坐标计算
+# ==============================================================================
 
 class Note:
     TAP = 1
@@ -173,73 +170,108 @@ class Note:
     FLICK = 3
     HOLD = 4
 
-    # 所有音符的超类
-    def __init__(self, judge_line, x=0, at=0, above=True, alpha=0, end=-1, fake=False,speed=1.0):
+    _NOTE_OFFSETS = None
+
+    @classmethod
+    def _init_offsets(cls):
+        if cls._NOTE_OFFSETS is None:
+            theta = cor.NOTE_THETA
+            r = cor.NOTE_R
+            cls._NOTE_OFFSETS = [
+                (r * math.cos(math.radians(theta)),
+                 -r * math.sin(math.radians(theta))),
+                (r * math.cos(math.radians(180 - theta)),
+                 -r * math.sin(math.radians(180 - theta))),
+                (r * math.cos(math.radians(-180 + theta)),
+                 -r * math.sin(math.radians(-180 + theta))),
+                (r * math.cos(math.radians(-theta)),
+                 -r * math.sin(math.radians(-theta))),
+            ]
+
+    def __init__(self, judge_line, x=0, time_sec=0, above=True, alpha=0, end_sec=-1, fake=False, speed=1.0, height=0.0, y_offset=0.0):
         """
-        初始化音符
-        :param x: 初始x坐标
-        :param at: 打击时间
-        :param above: 是否从判定线上方下落
-        :param alpha: 透明度
-        :param end: 如果Note是Hold，则本属性为结束打击时间
-        :param fake: 真假Note
+        time_sec: note 的时间（秒）— Phira 的 time
+        height: note 的 floor position — Phira 的 height (从 speed 积分得来)
+        y_offset: note 在判定线上的 y 偏移
         """
         self.judge_line = judge_line
-        self.x = x
-        self.at = at
-        self.end = end
+        self.x = x                    # x 坐标 (RPE 归一化后)
+        self.time = time_sec          # 秒
+        self.end = end_sec            # 秒 (对于 Hold)
+        self.y_offset = y_offset      # y 偏移
+        self.height = height          # floor position (速度积分)
         self.angle = 0 if above else 180
         self.above = above
         self.alpha = alpha
         self.fake = fake
         self.id = -1
-        self.highlight = False  # 是否双押或表演(高光)
-        self.y_in_surface = -1
+        self.highlight = False
+        self.speed = speed
+        # 屏幕坐标缓存
         self.x_in_surface = -1
-        self.speed=speed
+        self.y_in_surface = -1
+        self._line_height_cache = 0
 
-    def upgrade(self, surface: pygame.surface.Surface, beat: float):
+    def compute_y(self, time_sec: float, line_height: float) -> float:
         """
-        更新本Note的位置
-        :param surface: 被绘制的Surface对象
-        :param beat: beat
+        基于 Phira 公式计算 note 的相对 y 位置
+        base = (note.height - line_height) * note.speed + note.y_offset
+        然后根据判定线的角度投影到屏幕
         """
-        judge_line = self.judge_line
-        if beat > self.at:
-            beat = self.at
-        # 当speed为0时，保持音符在相对于判定线锚点的固定位置
-        if self.speed == 0:
-            _y = 0  # 固定在判定线上
-        else:
-            _y = (alterobj.b2s(self.at)-(judge_line.floor_position))* cor.DEBUG_N*self.speed*800
+        # Phira: base = (note.height - line_height) / aspect_ratio * note.speed
+        # 但在 pyphi 的屏幕坐标系下，不需要 aspect_ratio
+        base = (self.height - line_height) * self.speed
+        
+        # 加上 y_offset（Phira 的 object.translation.y / speed 转换为世界坐标）
+        y_offset = self.y_offset * self.speed
+        y_pos = base + y_offset
+        
+        return y_pos
+
+    def upgrade(self, time_sec: float, line_height: float):
+        """计算 note 在屏幕上的位置"""
+        # 获取 note 的相对 y 位置 (Phira 公式)
+        _y = self.compute_y(time_sec, line_height)
+        
         _x = self.x * cor.DEBUG_K
         r = (_x ** 2 + _y ** 2) ** 0.5
-        if _x > 0:
-            angle = judge_line.angle + math.degrees(math.atan(_y / _x))
-        elif _x < 0:
-            angle = judge_line.angle + math.degrees(math.atan(_y / _x)) + 180
-        else:
-            angle = judge_line.angle + (90 if _y >= 0 else - 90)
-        #x = r * math.cos(math.radians(angle)) * (1 if self.above else -1) + judge_line.x
-        x = r * math.cos(math.radians(angle)) * 1 + judge_line.x
-        y = r * math.sin(math.radians(angle)) * (-1 if self.above else 1) + judge_line.y
 
-        self.x_in_surface = x
-        self.y_in_surface = y
+        if r == 0:
+            angle = self.judge_line.angle
+        elif _x > 0:
+            angle = self.judge_line.angle + math.degrees(math.atan2(_y, _x))
+        elif _x < 0:
+            angle = self.judge_line.angle + math.degrees(math.atan2(_y, _x))
+        else:
+            angle = self.judge_line.angle + (90 if _y >= 0 else -90)
+
+        self.x_in_surface = r * math.cos(math.radians(angle)) + self.judge_line.x
+        self.y_in_surface = r * math.sin(math.radians(angle)) * (-1 if self.above else 1) + self.judge_line.y
 
     def blit(self, surface):
         x = self.x_in_surface
         y = self.y_in_surface
-        angle = self.judge_line.angle
-        alpha = self.alpha
 
-        if not (x < 0 or x > cor.WIDTH or y < 0 or y > cor.HEIGHT):
-            self.draw_at(surface, x, y, angle, alpha)
-            debug.mark(surface, x, y, color=(200, 50, 50), r=5)
+        if not (x < -50 or x > cor.WIDTH + 50 or y < -50 or y > cor.HEIGHT + 50):
+            self.draw_at(surface, x, y, self.judge_line.angle, self.alpha)
 
-    def upgrade_and_blit(self, surface: pygame.surface.Surface, beat: float):
-        self.upgrade(surface, beat)
+    def upgrade_and_blit(self, surface, beat, time_sec, line_height):
+        self.upgrade(time_sec, line_height)
         self.blit(surface)
+
+    @classmethod
+    def _get_rotated_diamond(cls, cx, cy, angle):
+        """获取旋转后的菱形四个顶点"""
+        cls._init_offsets()
+        ang = math.radians(angle)
+        cos_a = math.cos(ang)
+        sin_a = math.sin(ang)
+        points = []
+        for ox, oy in cls._NOTE_OFFSETS:
+            rx = ox * cos_a + oy * sin_a
+            ry = -ox * sin_a + oy * cos_a
+            points.append((cx + rx, cy + ry))
+        return points
 
     @classmethod
     def draw_at_(cls, surface, x, y, angle, color, highlight):
@@ -248,383 +280,150 @@ class Note:
             min(color[1] + (64 if highlight else 0), 255),
             min(color[2], 255)
         )
-        pygame.draw.polygon(surface, color_, [
-            (x + cor.NOTE_R * math.cos(math.radians(angle + cor.NOTE_THETA)),
-             y - cor.NOTE_R * math.sin(math.radians(angle + cor.NOTE_THETA))),
-            (x + cor.NOTE_R * math.cos(math.radians(angle + 180 - cor.NOTE_THETA)),
-             y - cor.NOTE_R * math.sin(math.radians(angle + 180 - cor.NOTE_THETA))),
-            (x + cor.NOTE_R * math.cos(math.radians(angle - 180 + cor.NOTE_THETA)),
-             y - cor.NOTE_R * math.sin(math.radians(angle - 180 + cor.NOTE_THETA))),
-            (x + cor.NOTE_R * math.cos(math.radians(angle - cor.NOTE_THETA)),
-             y - cor.NOTE_R * math.sin(math.radians(angle - cor.NOTE_THETA))),
-        ])
+        points = cls._get_rotated_diamond(x, y, angle)
+        pygame.draw.polygon(surface, color_, points)
 
     def draw_at(self, surface, x, y, angle, alpha):
         pass
 
 
 class Tap(Note):
-    # 所有音符的超类
-    def __init__(self, judge_line, x=0, at=0, above=True, alpha=0, end=-1, fake=False,speed=1.0):
-        super().__init__(judge_line, x, at, above, alpha, end, fake,speed)
+    def __init__(self, judge_line, x=0, time_sec=0, above=True, alpha=0, end_sec=-1, fake=False, speed=1.0, height=0.0, y_offset=0.0):
+        super().__init__(judge_line, x, time_sec, above, alpha, end_sec, fake, speed, height, y_offset)
         self.id = Note.TAP
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (0,194,255, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (0, 194, 255, alpha), self.highlight)
 
 
 class Drag(Note):
-    # 所有音符的超类
-    def __init__(self, judge_line, x=0, at=0, above=True, alpha=0, end=-1, fake=False,speed=1.0):
-        super().__init__(judge_line, x, at, above, alpha, end, fake,speed)
+    def __init__(self, judge_line, x=0, time_sec=0, above=True, alpha=0, end_sec=-1, fake=False, speed=1.0, height=0.0, y_offset=0.0):
+        super().__init__(judge_line, x, time_sec, above, alpha, end_sec, fake, speed, height, y_offset)
         self.id = Note.DRAG
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (237,243,77, alpha), self.highlight)
-        # Note.draw_at_(surface, x, y, angle, (240, 237, 105, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (237, 243, 77, alpha), self.highlight)
 
 
 class Flick(Note):
-    # 所有音符的超类
-    def __init__(self, judge_line, x=0, at=0, above=True, alpha=0, end=-1, fake=False,speed=1.0):
-        super().__init__(judge_line, x, at, above, alpha, end, fake,speed)
+    def __init__(self, judge_line, x=0, time_sec=0, above=True, alpha=0, end_sec=-1, fake=False, speed=1.0, height=0.0, y_offset=0.0):
+        super().__init__(judge_line, x, time_sec, above, alpha, end_sec, fake, speed, height, y_offset)
         self.id = Note.FLICK
 
     def draw_at(self, surface, x, y, angle, alpha):
-        Note.draw_at_(surface, x, y, angle, (255,14,89, alpha), self.highlight)
-        # Note.draw_at_(surface, x, y, angle, (254, 88, 118, alpha), self.highlight)
+        Note.draw_at_(surface, x, y, angle, (255, 14, 89, alpha), self.highlight)
 
 
 class Hold(Note):
-    # 所有音符的超类
-    def __init__(self, judge_line, x=0, at=0, above=True, alpha=0, end=-1, fake=False,speed=1.0):
-        super().__init__(judge_line, x, at, above, alpha, end, fake,speed)
+    def __init__(self, judge_line, x=0, time_sec=0, above=True, alpha=0, end_sec=-1, fake=False, speed=1.0, height=0.0, y_offset=0.0):
+        super().__init__(judge_line, x, time_sec, above, alpha, end_sec, fake, speed, height, y_offset)
         self.id = Note.HOLD
-        self.duration = self.end - self.at
+        self.end_height = height  # Hold end 的 height（由加载器设置）
+        self.duration = self.end - self.time
         self.last_eval_time = -1
         self.length = 0
+        self._BAR_WIDTH_HALF = cor.BAR_WIDTH / 2
 
-    def upgrade(self, surface: pygame.surface.Surface, beat: float):
-        """
-        将判定线本身及Note绘制到surface上
-        :param surface: 被绘制的Surface对象
-        :param beat: beat
-        """
-        judge_line = self.judge_line
-        if beat > self.end:
-            beat = self.end
-        full_length = judge_line.note_y_object.get_value(self.at, self.end)*self.speed*judge_line.speed/6
+    def upgrade(self, time_sec: float, line_height: float):
+        """Hold 的升级，绘制延伸条"""
+        if time_sec > self.end:
+            time_sec = self.end
 
-        if beat < self.at:
-            length = full_length
-            _y = judge_line.note_y_object.get_value(beat, self.at) * (
-                1 if self.above else -1
-            )
+        # Hold 的起始和结束 y 位置
+        base_y = self.compute_y(time_sec, line_height)
+        end_base = (self.end_height - line_height) * self.speed + self.y_offset * self.speed
+        
+        if time_sec < self.time:
+            length = (end_base - base_y)  # 整个长度
         else:
-            length = full_length * (self.end - beat) / self.duration
-            _y = 0
+            length = (end_base - base_y)  # 剩余长度
+            if length < 0:
+                length = 0
 
-        _y = _y * cor.DEBUG_N*judge_line.speed/6
+        _x = self.x * cor.DEBUG_K
+        r = (_x ** 2 + base_y ** 2) ** 0.5
 
-        r = (self.x ** 2 + _y ** 2) ** 0.5
-        if self.x > 0:
-            angle = judge_line.angle + math.degrees(math.atan(_y / self.x))
-        elif self.x < 0:
-            angle = judge_line.angle + math.degrees(math.atan(_y / self.x)) + 180
+        if r == 0:
+            angle = self.judge_line.angle
+        elif _x > 0:
+            angle = self.judge_line.angle + math.degrees(math.atan2(base_y, _x))
+        elif _x < 0:
+            angle = self.judge_line.angle + math.degrees(math.atan2(base_y, _x))
         else:
-            angle = judge_line.angle + (90 if _y >= 0 else - 90)
-        x = r * math.cos(math.radians(angle)) + judge_line.x
-        y = -r * math.sin(math.radians(angle)) + judge_line.y
+            angle = self.judge_line.angle + (90 if base_y >= 0 else -90)
 
-        self.x_in_surface = x
-        self.y_in_surface = y
+        self.x_in_surface = r * math.cos(math.radians(angle)) + self.judge_line.x
+        self.y_in_surface = r * math.sin(math.radians(angle)) + self.judge_line.y
 
-        if self.y_in_surface < 0 or self.y_in_surface > cor.HEIGHT or \
-                self.x_in_surface < 0 or self.x_in_surface > cor.WIDTH:
-            return 0
         self.length = length
 
     def blit(self, surface):
         length = self.length
-        judge_line = self.judge_line
         x = self.x_in_surface
         y = self.y_in_surface
 
-        length = length if self.above else -length
-        # p1, p2 = Hold.get_points(x, y, length, judge_line.angle + (90 if self.above else -90))
-        # length = ((p1[0]-p2[0]) ** 2 + (p1[1]-p2[1]) ** 2) ** 0.5
+        if length <= 0:
+            return
 
-        _angle = math.degrees(math.atan(length / (cor.BAR_WIDTH / 2) * 2))
-        _angle1 = math.radians(judge_line.angle + _angle)
-        _angle2 = math.radians(180 + judge_line.angle - _angle)
+        angle_rad = math.radians(self.judge_line.angle)
+        cos_a = math.cos(angle_rad)
+        sin_a = math.sin(angle_rad)
 
-        r = (length ** 2 + ((cor.BAR_WIDTH / 2) / 2) ** 2) ** 0.5
+        bar_half = self._BAR_WIDTH_HALF / 2
+        # Hold bar
         pygame.draw.polygon(surface,
                             (10 + (32 if self.highlight else 0),
                              195 + (32 if self.highlight else 0),
                              255,
                              self.alpha * 0.8), [
-                                (x + (cor.BAR_WIDTH / 2) / 2 * math.cos(math.radians(judge_line.angle)),
-                                 y - (cor.BAR_WIDTH / 2) / 2 * math.sin(math.radians(judge_line.angle))),
-                                (x - (cor.BAR_WIDTH / 2) / 2 * math.cos(math.radians(judge_line.angle)),
-                                 y + (cor.BAR_WIDTH / 2) / 2 * math.sin(math.radians(judge_line.angle))),
-                                (x + r * math.cos(_angle2),
-                                 y - r * math.sin(_angle2)),
-                                (x + r * math.cos(_angle1),
-                                 y - r * math.sin(_angle1)),
+            (x + bar_half * cos_a, y - bar_half * sin_a),
+            (x - bar_half * cos_a, y + bar_half * sin_a),
+            (x - bar_half * cos_a + length * sin_a, y + bar_half * sin_a + length * cos_a),
+            (x + bar_half * cos_a + length * sin_a, y - bar_half * sin_a + length * cos_a),
+        ])
 
-                            ])
-        # r = (length ** 2 + (core.NOTE_WIDTH / 2) ** 2) ** 0.5
-        # pygame.draw.line(surface,
-        #                  (10 + (32 if self.highlight else 0), 195 + (32 if self.highlight else 0), 255,
-        #                   self.alpha * 0.8),
-        #                  (x, y),
-        #                  (x + (r * math.cos(_angle2) + r * math.cos(_angle1)) / 2,
-        #                   y - (r * math.sin(_angle2) + r * math.sin(_angle1)) / 2),
-        #                  width=14)
-
-        # pygame.draw.circle(surface,
-        #                    (10 + (32 if self.highlight else 0), 195 + (32 if self.highlight else 0), 255,
-        #                     self.alpha * 0.8),
-        #                    (x + (r * math.cos(_angle2) + r * math.cos(_angle1)) / 2,
-        #                     y - (r * math.sin(_angle2) + r * math.sin(_angle1)) / 2),
-        #                    8)
-
-        _angle = math.degrees(math.atan(length / cor.NOTE_WIDTH * 2))
-        _angle1 = math.radians(judge_line.angle + _angle)
-        _angle2 = math.radians(180 + judge_line.angle - _angle)
-
-        angle = judge_line.angle
+        # 末端菱形
+        angle = self.judge_line.angle
+        points = Note._get_rotated_diamond(x, y, angle)
         pygame.draw.polygon(surface, (10 + (32 if self.highlight else 0),
                                       195 + (32 if self.highlight else 0),
                                       255,
-                                      self.alpha * 0.8), [
-                                (x + cor.NOTE_R * math.cos(math.radians(angle + cor.NOTE_THETA)),
-                                 y - cor.NOTE_R * math.sin(math.radians(angle + cor.NOTE_THETA))),
-                                (x + cor.NOTE_R * math.cos(math.radians(angle + 180 - cor.NOTE_THETA)),
-                                 y - cor.NOTE_R * math.sin(math.radians(angle + 180 - cor.NOTE_THETA))),
-                                (x + cor.NOTE_R * math.cos(math.radians(angle - 180 + cor.NOTE_THETA)),
-                                 y - cor.NOTE_R * math.sin(math.radians(angle - 180 + cor.NOTE_THETA))),
-                                (x + cor.NOTE_R * math.cos(math.radians(angle - cor.NOTE_THETA)),
-                                 y - cor.NOTE_R * math.sin(math.radians(angle - cor.NOTE_THETA))),
-                            ])
-        debug.mark(surface, x, y, color=(200, 50, 50), r=5)
-        # length = 12
-        # _angle = math.degrees(math.atan(length / core.NOTE_WIDTH * 2))
-        # _angle1 = math.radians(judge_line.angle + _angle)
-        # _angle2 = math.radians(180 + judge_line.angle - _angle)
-        # r = (length ** 2 + (core.NOTE_WIDTH / 2) ** 2) ** 0.5
-        # pygame.draw.polygon(surface,
-        #                     (10 + (32 if self.highlight else 0),
-        #                      195 + (32 if self.highlight else 0),
-        #                      255,
-        #                      self.alpha * 0.8), [
-        #                         (x + core.NOTE_WIDTH / 2 * math.cos(math.radians(judge_line.angle)),
-        #                          y - core.NOTE_WIDTH / 2 * math.sin(math.radians(judge_line.angle))),
-        #                         (x - core.NOTE_WIDTH / 2 * math.cos(math.radians(judge_line.angle)),
-        #                          y + core.NOTE_WIDTH / 2 * math.sin(math.radians(judge_line.angle))),
-        #                         (x + r * math.cos(_angle2),
-        #                          y - r * math.sin(_angle2)),
-        #                         (x + r * math.cos(_angle1),
-        #                          y - r * math.sin(_angle1)),
-        #
-        #                     ])
+                                      self.alpha * 0.8), points)
 
-    def upgrade_and_blit(self, surface: pygame.surface.Surface, beat: float):
-        self.upgrade(surface, beat)
+    def upgrade_and_blit(self, surface, beat, time_sec, line_height):
+        self.upgrade(time_sec, line_height)
         self.blit(surface)
 
-    @classmethod
-    def get_points(cls, x, y, length, angle):
-        # 此处除cross内坐标，都是将y轴向上视为y轴正方向
-        # 交点
-        _points = []
 
-        _angle = angle % 360
-
-        # 找出线段左右边界
-        line_left = x + length / 2 * math.cos(math.radians(_angle))
-        line_right = x - length / 2 * math.cos(math.radians(_angle))
-
-        if line_left > line_right:
-            line_left, line_right = line_right, line_left
-
-        # 找出线段上下边界
-        line_top = -y + length / 2 * math.sin(math.radians(_angle))
-        line_bottom = -y - length / 2 * math.sin(math.radians(_angle))
-
-        if line_top < line_bottom:
-            line_top, line_bottom = line_bottom, line_top
-
-        if _angle == 90:
-            # 划定最小值域
-            if 0 <= x <= cor.WIDTH:
-
-                if line_top >= 0 >= line_bottom:
-                    _points.append((x, 0))
-                if line_top >= -cor.HEIGHT >= line_bottom:
-                    _points.append((x, cor.HEIGHT))
-        elif _angle == 0:
-            if -cor.HEIGHT <= -y <= 0:
-                if line_left <= 0 <= line_right:
-                    _points.append((0, y))
-                if line_left <= cor.WIDTH <= line_right:
-                    _points.append((cor.WIDTH, y))
-        else:
-            # 先求斜率
-            k = math.tan(math.radians(_angle))
-            # 再求截距
-            b = -y - x * k
-
-            # 上方直线交点
-            # y = kx + b, y = 0 => x = -b / k
-            top_cross_x = -b / k
-
-            # 下方直线交点
-            # y = kx + b, y = HEIGHT => x = (-HEIGHT - b) / k
-            bottom_cross_x = (-cor.HEIGHT - b) / k
-
-            # 左侧直线交点
-            right_cross_y = cor.WIDTH * k + b
-
-            # 右侧直线交点
-            left_cross_y = b
-
-            if 0 <= top_cross_x <= cor.WIDTH:
-                if line_top >= 0 >= line_bottom:
-                    _points.append((top_cross_x, 0))
-            if 0 <= bottom_cross_x <= cor.WIDTH:
-                if line_top >= -cor.HEIGHT >= line_bottom:
-                    _points.append((bottom_cross_x, cor.HEIGHT))
-            if -cor.HEIGHT < left_cross_y < 0:
-                if line_left <= 0 <= line_right:
-                    _points.append((0, -left_cross_y))
-            if -cor.HEIGHT < right_cross_y < 0:
-                if line_left <= cor.WIDTH <= line_right:
-                    _points.append((cor.WIDTH, -right_cross_y))
-
-        if len(_points) != 2:
-            # 只有一个交点，那么可能是线不够长
-            # 上方端点在画面内
-            if -cor.HEIGHT <= line_top <= 0 and \
-                    0 <= (line_left if (180 > _angle > 90 or 360 > _angle > 270) else line_right) <= cor.WIDTH:
-                point_x = line_left if (180 > _angle > 90 or 360 > _angle > 270) else line_right
-                _points.append((point_x, -line_top))
-
-            # 下方端点在画面内
-            if -cor.HEIGHT <= line_bottom <= 0 and \
-                    0 <= (line_right if (180 > _angle > 90 or 360 > _angle > 270) else line_left) <= cor.WIDTH:
-                point_x = line_right if (180 > _angle > 90 or 360 > _angle > 270) else line_left
-                _points.append((point_x, -line_bottom))
-
-        if len(_points) == 1:
-            _points = []
-
-        # print(line_top, line_bottom, _angle, _points, )
-        return _points
-
+# ==============================================================================
+# EvalPainter — 判定特效
+# ==============================================================================
 
 class EvalPainter:
-    # 持续时长
     DURATION = 0.5
 
     def __init__(self):
-        # [(<Tap Object>, 1.254418), ...]
-        self.notes_time_eval: T.List[T.Tuple[Note, float, str]] = []
+        self.notes_time_eval: T.Deque[T.Tuple[Note, float, str]] = deque()
 
     def add_note(self, note: Note, eval_: str):
-        """
-        添加note
-        :param note:
-        :param eval_: core.Eval.GOOD / core.Eval.PERFECT
-        :return:
-        """
         self.notes_time_eval.append((note, time.time(), eval_))
 
     def blit(self, surface):
-        # todo: 做Hold的part
+        now = time.time()
+        while self.notes_time_eval and (now - self.notes_time_eval[0][1]) >= EvalPainter.DURATION:
+            self.notes_time_eval.popleft()
 
-        while self.notes_time_eval and (time.time() - self.notes_time_eval[0][1]) >= EvalPainter.DURATION:
-            self.notes_time_eval.pop(0)
+        if not self.notes_time_eval:
+            return
 
-        for note, time_, eval_ in self.notes_time_eval:
-            texture = cor.Texture[cor.Texture.EvalImg][eval_,
-                                                         min(int(29 * (time.time() - time_) / EvalPainter.DURATION),
-                                                             29)]
+        for note, t, eval_ in self.notes_time_eval:
+            frame = min(int(29 * (now - t) / EvalPainter.DURATION), 29)
+            try:
+                texture = cor.Texture[cor.Texture.EvalImg][eval_, frame]
+            except (KeyError, IndexError):
+                continue
             surface.blit(
-                texture, (note.x_in_surface - texture.get_width() / 2, note.y_in_surface - texture.get_height() / 2)
+                texture,
+                (note.x_in_surface - texture.get_width() / 2,
+                 note.y_in_surface - texture.get_height() / 2)
             )
-
-
-class ElementPainter:
-    """
-    为了避免庞大的计算量，本模块使用多线程对所有note进行计算，在减少计算压力的同时保证note显示的完整性
-    note 绘制的步骤：
-        1. 判定线先更新位置并显示，同时将note载入notes[]，然后再载入threads[]
-        2. 启动线程。判定线全部更新完之后，NotePainter对所有的note的位置使用多线程计算更新
-        3. note的位置更新的过程中，可以显示的note会被浅拷贝至visible_notes[]
-        4. 位置全部更新完后，对visible_notes[]进行排序，key=lambda x: [x.judgeline.id, x.at, x.id != element.Note.HOLD]
-        5. 最后按顺序绘制visible_notes[]中的note即可
-    """
-    N = 25  # 一个线程分配的Note数
-
-    def __init__(self):
-        self.visible_notes = []
-
-    def paint(self, surface, beat):
-        self.visible_notes = []
-        threads = []
-
-        # ---------- STEP 1 ----------
-
-        for judge_line in cor.judge_line_list:
-            judge_line.blit(surface, beat)
-
-            for i in range(0, len(judge_line.notes), ElementPainter.N):
-                t = threading.Thread(
-                    target=ElementPainter.upgrade_notes,
-                    args=(self, judge_line.notes[i: i + ElementPainter.N], surface, beat,)
-                )
-                t.setDaemon(True)
-                threads.append(t)
-
-        # ---------- STEP 1 ----------
-
-        # ---------- STEP 2 ----------
-
-        for t in threads:
-            t.start()
-
-        # 等待计算完毕
-        for t in threads:
-            t.join()
-
-        # ---------- STEP 2 ----------
-
-        # ---------- STEP 4 ----------
-
-        self.visible_notes.sort(key=lambda x: [x.judge_line.id, x.at, x.id != Note.HOLD])
-
-        # ---------- STEP 4 ----------
-
-        # ---------- STEP 5 ----------
-
-        for note in self.visible_notes:
-            note.blit(surface)
-
-        # ---------- STEP 5 ----------
-
-    def upgrade_notes(self, notes, surface, beat):
-        # ---------- STEP 3 ----------
-
-        for note in notes:
-            note.upgrade(surface, beat)
-            if not (note.x_in_surface > cor.WIDTH or note.x_in_surface < 0 or
-                    note.y_in_surface < 0 or note.y_in_surface > cor.HEIGHT):
-                self.visible_notes.append(note)
-
-        # ---------- STEP 3 ----------
-
-
-if __name__ == '__main__':
-    pass
